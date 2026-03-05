@@ -1,0 +1,59 @@
+name: Docs Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  validate-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify required files exist
+        run: |
+          set -euo pipefail
+          required_files=(
+            "README.md"
+            "CONTRIBUTING.md"
+            "docs/0-product-brief.md"
+            "docs/1-scope.md"
+            "docs/2-user-stories.md"
+            "docs/3-data-contract.md"
+            "docs/4-risk-rules-catalog.md"
+            "docs/5-scoring-model.md"
+            "docs/6-architecture.md"
+            "docs/7-security-baseline.md"
+            "docs/8-popia-basics.md"
+            "docs/9-wireframes.md"
+            "docs/10-mvp-backlog.md"
+            "docs/11-test-plan.md"
+            "docs/12-readiness-checklist.md"
+            "docs/13-brand-system.md"
+            "docs/api/openapi-v1.yaml"
+            "docs/interfaces/domain-types-v1.md"
+            "docs/design/tokens-v1.json"
+            "samples/sample-company-v1.csv"
+            "samples/sample-transactions-v1.csv"
+            "samples/sample-payroll-v1.csv"
+            "samples/sample-vat-submissions-v1.csv"
+            "samples/sample-invalid-data-v1.csv"
+          )
+
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "Missing required file: $file"
+              exit 1
+            fi
+          done
+
+      - name: Block unresolved placeholders
+        run: |
+          set -euo pipefail
+          if grep -R --line-number -E "TBD|TO_BE_DECIDED" docs; then
+            echo "Found unresolved placeholders in docs."
+            exit 1
+          fi

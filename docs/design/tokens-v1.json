@@ -1,0 +1,21 @@
+{
+  "tokenVersion": "v1",
+  "theme": "light",
+  "colors": {
+    "primary": "#1E3A5F",
+    "secondary": "#4A5D73",
+    "success": "#2E7D32",
+    "warning": "#F59E0B",
+    "danger": "#D32F2F",
+    "bg": "#F8FAFC",
+    "card": "#FFFFFF",
+    "border": "#E5E7EB",
+    "text-primary": "#111827",
+    "text-secondary": "#6B7280"
+  },
+  "semantic": {
+    "riskLow": "success",
+    "riskMedium": "warning",
+    "riskHigh": "danger"
+  }
+}

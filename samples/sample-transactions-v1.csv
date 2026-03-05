@@ -1,0 +1,6 @@
+contract_version,source_record_id,company_registration_number,transaction_date,ledger_category,description,amount,currency,vat_amount,direction,source_system,tax_invoice_number,supplier_vat_number,tax_invoice_date,vat201_reference
+v1,TXN-2026-0001,2018/123456/07,2026-01-05,Revenue,Invoice INV-1001,250000.00,ZAR,37500.00,credit,ERPExport,,,,
+v1,TXN-2026-0002,2018/123456/07,2026-01-10,Entertainment,Client dinner events,35000.00,ZAR,5250.00,debit,ERPExport,,,,
+v1,TXN-2026-0003,2018/123456/07,2026-01-15,Salaries,Monthly payroll journal,120000.00,ZAR,0.00,debit,ERPExport,,,,
+v1,TXN-2026-0004,2018/123456/07,2026-01-20,VATInput,Supplier VAT claim batch,65000.00,ZAR,9750.00,debit,ERPExport,TI-88912,4010101234,2026-01-18,VAT201-2026-Q1
+v1,TXN-2026-0005,2018/123456/07,2026-01-25,VATOutput,Output VAT settlement,42000.00,ZAR,42000.00,credit,ERPExport,,,,

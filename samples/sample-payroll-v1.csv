@@ -1,0 +1,3 @@
+contract_version,source_record_id,company_registration_number,pay_period,gross_salary,total_paye,employee_count,total_uif,total_sdl,currency,emp201_period,emp201_declared_paye,emp201_declared_uif,emp201_declared_sdl,emp501_reference,irp5_total_paye,submission_date,payment_date,payment_reference
+v1,PR-2026-01,2018/123456/07,2026-01-01,120000.00,22000.00,18,1200.00,1200.00,ZAR,2026-01-01,22000.00,1200.00,1200.00,EMP501-2026-H1,44400.00,2026-02-05,2026-02-06,PAYE-REF-2026-01
+v1,PR-2026-02,2018/123456/07,2026-02-01,122500.00,22400.00,18,1220.00,1220.00,ZAR,2026-02-01,22400.00,1220.00,1220.00,EMP501-2026-H1,44400.00,2026-03-05,2026-03-06,PAYE-REF-2026-02

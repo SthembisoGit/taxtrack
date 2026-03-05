@@ -1,0 +1,893 @@
+openapi: 3.1.0
+info:
+  title: TaxTrack API
+  version: v1
+  description: >
+    API contract for TaxTrack MVP. The platform provides internal risk
+    heuristics and regulatory reconciliation analytics. It does not provide
+    official SARS determinations.
+servers:
+  - url: https://api.taxtrack.example
+tags:
+  - name: Auth
+  - name: Company
+  - name: Financial Data
+  - name: Risk Analysis
+  - name: Reports
+  - name: Privacy
+  - name: Jobs
+security:
+  - bearerAuth: []
+
+paths:
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh JWT access token using refresh token rotation
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/company:
+    post:
+      tags: [Company]
+      summary: Create company
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCompanyRequest'
+      responses:
+        '201':
+          description: Company created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/company/{id}:
+    get:
+      tags: [Company]
+      summary: Get company by id
+      parameters:
+        - $ref: '#/components/parameters/CompanyPathId'
+      responses:
+        '200':
+          description: Company retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/financial/upload:
+    post:
+      tags: [Financial Data]
+      summary: Upload financial CSV
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [companyId, datasetType, file]
+              properties:
+                companyId:
+                  type: string
+                  format: uuid
+                datasetType:
+                  $ref: '#/components/schemas/DatasetType'
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '202':
+          description: Upload accepted for validation and processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadAcceptedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationFailureResponse'
+
+  /api/financial/upload/{uploadId}/status:
+    get:
+      tags: [Jobs]
+      summary: Get upload job status
+      parameters:
+        - $ref: '#/components/parameters/UploadIdPath'
+      responses:
+        '200':
+          description: Upload job status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadJobStatusResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/risk/analyze:
+    post:
+      tags: [Risk Analysis]
+      summary: Trigger risk analysis for a company
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalyzeRiskRequest'
+      responses:
+        '202':
+          description: Analysis accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyzeAcceptedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /api/risk/analyze/{analysisId}/status:
+    get:
+      tags: [Jobs]
+      summary: Get risk analysis job status
+      parameters:
+        - $ref: '#/components/parameters/AnalysisIdPath'
+      responses:
+        '200':
+          description: Analysis job status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskAnalysisJobStatusResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/risk/{companyId}:
+    get:
+      tags: [Risk Analysis]
+      summary: Get latest risk result for company
+      parameters:
+        - $ref: '#/components/parameters/CompanyIdPath'
+      responses:
+        '200':
+          description: Latest risk result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskResultResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/report/{companyId}:
+    get:
+      tags: [Reports]
+      summary: Generate and return compliance report payload
+      parameters:
+        - $ref: '#/components/parameters/CompanyIdPath'
+      responses:
+        '200':
+          description: Report generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/privacy/data-requests:
+    post:
+      tags: [Privacy]
+      summary: Create a data subject request (export or deletion)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDataSubjectRequest'
+      responses:
+        '202':
+          description: Request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataSubjectRequestResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/privacy/data-requests/{requestId}:
+    get:
+      tags: [Privacy]
+      summary: Get data subject request status
+      parameters:
+        - $ref: '#/components/parameters/RequestIdPath'
+      responses:
+        '200':
+          description: Request status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataSubjectRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    CompanyPathId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CompanyIdPath:
+      name: companyId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    UploadIdPath:
+      name: uploadId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AnalysisIdPath:
+      name: analysisId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    RequestIdPath:
+      name: requestId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 128
+
+  responses:
+    BadRequest:
+      description: Invalid request payload
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    Unauthorized:
+      description: Authentication required or invalid token
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    Forbidden:
+      description: Authenticated but not authorized
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    NotFound:
+      description: Resource not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    Conflict:
+      description: Resource conflict
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    UnprocessableEntity:
+      description: Semantic validation failed
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [email, password, role]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 12
+          maxLength: 128
+        role:
+          $ref: '#/components/schemas/UserRole'
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [userId, email, role, accessToken, refreshToken, accessTokenExpiresAt, refreshTokenExpiresAt]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        role:
+          $ref: '#/components/schemas/UserRole'
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        accessTokenExpiresAt:
+          type: string
+          format: date-time
+        refreshTokenExpiresAt:
+          type: string
+          format: date-time
+
+    CreateCompanyRequest:
+      type: object
+      required: [name, registrationNumber, industry, taxReference]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 150
+        registrationNumber:
+          type: string
+          minLength: 5
+          maxLength: 30
+        industry:
+          type: string
+        taxReference:
+          type: string
+          minLength: 10
+          maxLength: 15
+
+    CompanyResponse:
+      type: object
+      required: [id, name, registrationNumber, industry, taxReference, ownerUserId, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        registrationNumber:
+          type: string
+        industry:
+          type: string
+        taxReference:
+          type: string
+        ownerUserId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+
+    DatasetType:
+      type: string
+      enum: [company, transactions, payroll, vat_submissions]
+
+    UploadAcceptedResponse:
+      type: object
+      required: [uploadId, companyId, datasetType, status, receivedAt]
+      properties:
+        uploadId:
+          type: string
+          format: uuid
+        companyId:
+          type: string
+          format: uuid
+        datasetType:
+          $ref: '#/components/schemas/DatasetType'
+        status:
+          $ref: '#/components/schemas/UploadJobStatus'
+        receivedAt:
+          type: string
+          format: date-time
+
+    UploadJobStatusResponse:
+      type: object
+      required: [uploadId, companyId, status, updatedAt]
+      properties:
+        uploadId:
+          type: string
+          format: uuid
+        companyId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/UploadJobStatus'
+        validationSummary:
+          type: object
+          properties:
+            acceptedRows:
+              type: integer
+            rejectedRows:
+              type: integer
+            evidenceCompleteness:
+              type: integer
+              minimum: 0
+              maximum: 100
+            insufficientEvidence:
+              type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+
+    AnalyzeRiskRequest:
+      type: object
+      required: [companyId]
+      properties:
+        companyId:
+          type: string
+          format: uuid
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+
+    AnalyzeAcceptedResponse:
+      type: object
+      required: [analysisId, companyId, status, queuedAt]
+      properties:
+        analysisId:
+          type: string
+          format: uuid
+        companyId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/RiskAnalysisJobStatus'
+        queuedAt:
+          type: string
+          format: date-time
+
+    RiskAnalysisJobStatusResponse:
+      type: object
+      required: [analysisId, companyId, status, updatedAt]
+      properties:
+        analysisId:
+          type: string
+          format: uuid
+        companyId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/RiskAnalysisJobStatus'
+        resultId:
+          type: string
+          format: uuid
+        updatedAt:
+          type: string
+          format: date-time
+
+    RiskResultResponse:
+      type: object
+      required:
+        - resultId
+        - companyId
+        - riskScore
+        - regulatoryScore
+        - heuristicScore
+        - riskLevel
+        - taxPolicyVersion
+        - policyEffectiveDate
+        - evidenceCompleteness
+        - insufficientEvidence
+        - alerts
+        - generatedAt
+      properties:
+        resultId:
+          type: string
+          format: uuid
+        companyId:
+          type: string
+          format: uuid
+        riskScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+        regulatoryScore:
+          type: integer
+          minimum: 0
+          maximum: 70
+        heuristicScore:
+          type: integer
+          minimum: 0
+          maximum: 30
+        riskLevel:
+          $ref: '#/components/schemas/RiskLevel'
+        taxPolicyVersion:
+          type: string
+        policyEffectiveDate:
+          type: string
+          format: date
+        evidenceCompleteness:
+          type: integer
+          minimum: 0
+          maximum: 100
+        insufficientEvidence:
+          type: boolean
+        alerts:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskAlert'
+        generatedAt:
+          type: string
+          format: date-time
+
+    RiskAlert:
+      type: object
+      required: [ruleCode, ruleClass, type, description, severity, recommendation]
+      properties:
+        ruleCode:
+          type: string
+        ruleClass:
+          $ref: '#/components/schemas/RuleClass'
+        type:
+          type: string
+        description:
+          type: string
+        severity:
+          $ref: '#/components/schemas/AlertSeverity'
+        recommendation:
+          type: string
+
+    ReportResponse:
+      type: object
+      required: [companyId, reportId, generatedAt, riskSummary, alerts, download]
+      properties:
+        companyId:
+          type: string
+          format: uuid
+        reportId:
+          type: string
+          format: uuid
+        generatedAt:
+          type: string
+          format: date-time
+        riskSummary:
+          type: object
+          required:
+            - riskScore
+            - regulatoryScore
+            - heuristicScore
+            - riskLevel
+            - taxPolicyVersion
+            - policyEffectiveDate
+            - evidenceCompleteness
+            - insufficientEvidence
+          properties:
+            riskScore:
+              type: integer
+              minimum: 0
+              maximum: 100
+            regulatoryScore:
+              type: integer
+              minimum: 0
+              maximum: 70
+            heuristicScore:
+              type: integer
+              minimum: 0
+              maximum: 30
+            riskLevel:
+              $ref: '#/components/schemas/RiskLevel'
+            taxPolicyVersion:
+              type: string
+            policyEffectiveDate:
+              type: string
+              format: date
+            evidenceCompleteness:
+              type: integer
+              minimum: 0
+              maximum: 100
+            insufficientEvidence:
+              type: boolean
+        alerts:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskAlert'
+        download:
+          type: object
+          required: [format, url, expiresAt]
+          properties:
+            format:
+              type: string
+              enum: [pdf, json]
+            url:
+              type: string
+            expiresAt:
+              type: string
+              format: date-time
+
+    CreateDataSubjectRequest:
+      type: object
+      required: [requestType]
+      properties:
+        companyId:
+          type: string
+          format: uuid
+        requestType:
+          $ref: '#/components/schemas/DataSubjectRequestType'
+        reason:
+          type: string
+          maxLength: 300
+
+    DataSubjectRequestResponse:
+      type: object
+      required: [requestId, requestType, status, createdAt, updatedAt]
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        requestType:
+          $ref: '#/components/schemas/DataSubjectRequestType'
+        status:
+          $ref: '#/components/schemas/DataSubjectRequestStatus'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        resolutionNote:
+          type: string
+
+    ValidationFailureResponse:
+      type: object
+      required: [uploadId, status, errors]
+      properties:
+        uploadId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [FailedValidation]
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+
+    ValidationError:
+      type: object
+      required: [rowNumber, columnName, errorCode, message]
+      properties:
+        rowNumber:
+          type: integer
+          minimum: 1
+        columnName:
+          type: string
+        errorCode:
+          type: string
+        message:
+          type: string
+
+    UserResponse:
+      type: object
+      required: [id, email, role, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        role:
+          $ref: '#/components/schemas/UserRole'
+        createdAt:
+          type: string
+          format: date-time
+
+    UserRole:
+      type: string
+      enum: [Owner, Accountant, FinanceManager, Viewer]
+
+    RiskLevel:
+      type: string
+      enum: [Low, Medium, High]
+
+    AlertSeverity:
+      type: string
+      enum: [Info, Warning, Critical]
+
+    RuleClass:
+      type: string
+      enum: [Regulatory, Heuristic]
+
+    UploadJobStatus:
+      type: string
+      enum: [Queued, Validating, Processing, Completed, Failed]
+
+    RiskAnalysisJobStatus:
+      type: string
+      enum: [Queued, Processing, Completed, Failed]
+
+    DataSubjectRequestType:
+      type: string
+      enum: [Export, Deletion]
+
+    DataSubjectRequestStatus:
+      type: string
+      enum: [Received, InProgress, Completed, Rejected]
+
+    ProblemDetails:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        traceId:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string

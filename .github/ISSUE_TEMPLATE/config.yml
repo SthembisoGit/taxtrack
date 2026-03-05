@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: TaxTrack docs
+    url: ./docs/0-product-brief.md
+    about: Check the product and scope docs before opening issues.

@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{EB0C2A9D-EDB5-40B1-8E37-4AF55D901521}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaxTrack.Domain", "src\TaxTrack.Domain\TaxTrack.Domain.csproj", "{3F7CF012-0ED8-4AA7-B07C-2ED9B2853D76}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaxTrack.Application", "src\TaxTrack.Application\TaxTrack.Application.csproj", "{99E7C409-7790-41D9-9B38-C42B52FC4ED2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaxTrack.Infrastructure", "src\TaxTrack.Infrastructure\TaxTrack.Infrastructure.csproj", "{366F5787-4CD4-413F-BCEC-1BC8000C6BF1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaxTrack.Api", "src\TaxTrack.Api\TaxTrack.Api.csproj", "{72CAE919-4F20-4791-940F-DC53A496A7D0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{A5671CE3-F803-4ABA-9AE0-AFC87F1F554B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaxTrack.Tests", "tests\TaxTrack.Tests\TaxTrack.Tests.csproj", "{A9BA5D45-96A0-4C25-8FF2-F6AA1C785AE8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3F7CF012-0ED8-4AA7-B07C-2ED9B2853D76}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F7CF012-0ED8-4AA7-B07C-2ED9B2853D76}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3F7CF012-0ED8-4AA7-B07C-2ED9B2853D76}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3F7CF012-0ED8-4AA7-B07C-2ED9B2853D76}.Release|Any CPU.Build.0 = Release|Any CPU
+		{99E7C409-7790-41D9-9B38-C42B52FC4ED2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{99E7C409-7790-41D9-9B38-C42B52FC4ED2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{99E7C409-7790-41D9-9B38-C42B52FC4ED2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{99E7C409-7790-41D9-9B38-C42B52FC4ED2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{366F5787-4CD4-413F-BCEC-1BC8000C6BF1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{366F5787-4CD4-413F-BCEC-1BC8000C6BF1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{366F5787-4CD4-413F-BCEC-1BC8000C6BF1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{366F5787-4CD4-413F-BCEC-1BC8000C6BF1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{72CAE919-4F20-4791-940F-DC53A496A7D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{72CAE919-4F20-4791-940F-DC53A496A7D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{72CAE919-4F20-4791-940F-DC53A496A7D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{72CAE919-4F20-4791-940F-DC53A496A7D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A9BA5D45-96A0-4C25-8FF2-F6AA1C785AE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A9BA5D45-96A0-4C25-8FF2-F6AA1C785AE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A9BA5D45-96A0-4C25-8FF2-F6AA1C785AE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A9BA5D45-96A0-4C25-8FF2-F6AA1C785AE8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3F7CF012-0ED8-4AA7-B07C-2ED9B2853D76} = {EB0C2A9D-EDB5-40B1-8E37-4AF55D901521}
+		{99E7C409-7790-41D9-9B38-C42B52FC4ED2} = {EB0C2A9D-EDB5-40B1-8E37-4AF55D901521}
+		{366F5787-4CD4-413F-BCEC-1BC8000C6BF1} = {EB0C2A9D-EDB5-40B1-8E37-4AF55D901521}
+		{72CAE919-4F20-4791-940F-DC53A496A7D0} = {EB0C2A9D-EDB5-40B1-8E37-4AF55D901521}
+		{A9BA5D45-96A0-4C25-8FF2-F6AA1C785AE8} = {A5671CE3-F803-4ABA-9AE0-AFC87F1F554B}
+	EndGlobalSection
+EndGlobal

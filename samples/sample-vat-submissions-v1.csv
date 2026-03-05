@@ -1,0 +1,2 @@
+contract_version,source_record_id,company_registration_number,tax_period_start,tax_period_end,output_vat,input_vat,vat_refund_claimed,declared_turnover,currency,submission_date,vat201_reference,payment_date,payment_reference
+v1,VAT-2026-Q1,2018/123456/07,2026-01-01,2026-03-31,126000.00,162000.00,36000.00,520000.00,ZAR,2026-04-25,VAT201-2026-Q1,2026-04-25,VAT-PAY-2026-Q1
