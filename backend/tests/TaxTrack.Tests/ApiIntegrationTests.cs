@@ -76,13 +76,92 @@ public sealed class ApiIntegrationTests
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
+    [Fact]
+    public async Task RefreshToken_ReplayIsRejected()
+    {
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        var tokens = await RegisterAndLoginTokensAsync(client, "owner-refresh@taxtrack.test");
+
+        using var firstRefreshResponse = await client.PostAsJsonAsync("/api/auth/refresh", new
+        {
+            refreshToken = tokens.RefreshToken
+        });
+        Assert.Equal(HttpStatusCode.OK, firstRefreshResponse.StatusCode);
+
+        using var firstRefreshJson = JsonDocument.Parse(await firstRefreshResponse.Content.ReadAsStringAsync());
+        var rotatedRefreshToken = firstRefreshJson.RootElement.GetProperty("refreshToken").GetString();
+        Assert.False(string.IsNullOrWhiteSpace(rotatedRefreshToken));
+        Assert.NotEqual(tokens.RefreshToken, rotatedRefreshToken);
+
+        using var replayResponse = await client.PostAsJsonAsync("/api/auth/refresh", new
+        {
+            refreshToken = tokens.RefreshToken
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, replayResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task PrivacyRequest_OwnerCanCreateAndRead()
+    {
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        var ownerToken = await RegisterAndLoginAsync(client, "owner-privacy@taxtrack.test");
+        var outsiderToken = await RegisterAndLoginAsync(client, "outsider-privacy@taxtrack.test");
+        var companyId = await CreateCompanyAsync(client, ownerToken, "REG-PRIVACY-001");
+        var requestId = await CreatePrivacyRequestAsync(client, ownerToken, companyId, "Export");
+
+        using var getRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/privacy/data-requests/{requestId}");
+        getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ownerToken);
+
+        using var getResponse = await client.SendAsync(getRequest);
+        Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+
+        using var outsiderGetRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/privacy/data-requests/{requestId}");
+        outsiderGetRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", outsiderToken);
+
+        using var outsiderGetResponse = await client.SendAsync(outsiderGetRequest);
+        Assert.Equal(HttpStatusCode.NotFound, outsiderGetResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task PrivacyRequest_NonMemberCannotCreateForCompany()
+    {
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        var ownerToken = await RegisterAndLoginAsync(client, "owner-privacy-access@taxtrack.test");
+        var outsiderToken = await RegisterAndLoginAsync(client, "outsider-privacy-access@taxtrack.test");
+        var companyId = await CreateCompanyAsync(client, ownerToken, "REG-PRIVACY-002");
+
+        using var createRequest = new HttpRequestMessage(HttpMethod.Post, "/api/privacy/data-requests");
+        createRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", outsiderToken);
+        createRequest.Content = JsonContent.Create(new
+        {
+            companyId,
+            requestType = "Deletion",
+            reason = "test-delete"
+        });
+
+        using var createResponse = await client.SendAsync(createRequest);
+        Assert.Equal(HttpStatusCode.Forbidden, createResponse.StatusCode);
+    }
+
     private static async Task<string> RegisterAndLoginAsync(HttpClient client, string email)
+    {
+        var tokens = await RegisterAndLoginTokensAsync(client, email);
+        return tokens.AccessToken;
+    }
+
+    private static async Task<(string AccessToken, string RefreshToken)> RegisterAndLoginTokensAsync(HttpClient client, string email)
     {
         using (var registerResponse = await client.PostAsJsonAsync("/api/auth/register", new
         {
             email,
             password = "StrongPass!1234",
-            role = 1
+            role = "Owner"
         }))
         {
             Assert.Equal(HttpStatusCode.Created, registerResponse.StatusCode);
@@ -96,8 +175,12 @@ public sealed class ApiIntegrationTests
         Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
 
         using var loginJson = JsonDocument.Parse(await loginResponse.Content.ReadAsStringAsync());
-        return loginJson.RootElement.GetProperty("accessToken").GetString()
+        var accessToken = loginJson.RootElement.GetProperty("accessToken").GetString()
             ?? throw new InvalidOperationException("accessToken missing from login response.");
+        var refreshToken = loginJson.RootElement.GetProperty("refreshToken").GetString()
+            ?? throw new InvalidOperationException("refreshToken missing from login response.");
+
+        return (accessToken, refreshToken);
     }
 
     private static async Task<Guid> CreateCompanyAsync(HttpClient client, string token, string registrationNumber)
@@ -150,6 +233,28 @@ public sealed class ApiIntegrationTests
 
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         return json.RootElement.GetProperty("analysisId").GetGuid();
+    }
+
+    private static async Task<Guid> CreatePrivacyRequestAsync(
+        HttpClient client,
+        string token,
+        Guid companyId,
+        string requestType)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/privacy/data-requests");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Content = JsonContent.Create(new
+        {
+            companyId,
+            requestType,
+            reason = "test-reason"
+        });
+
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return json.RootElement.GetProperty("requestId").GetGuid();
     }
 
     private static MultipartFormDataContent BuildTransactionsFormContent(Guid companyId, string registrationNumber)

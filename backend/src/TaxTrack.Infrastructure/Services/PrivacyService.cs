@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TaxTrack.Application.Exceptions;
 using TaxTrack.Application.Interfaces;
 using TaxTrack.Application.Models;
 using TaxTrack.Domain.Common;
@@ -9,6 +10,7 @@ namespace TaxTrack.Infrastructure.Services;
 
 public sealed class PrivacyService(
     TaxTrackDbContext dbContext,
+    ICompanyAccessService companyAccessService,
     IAuditService auditService) : IPrivacyService
 {
     public async Task<DataSubjectRequestResponse> CreateRequestAsync(
@@ -18,6 +20,18 @@ public sealed class PrivacyService(
         string? userAgent,
         CancellationToken cancellationToken)
     {
+        if (command.CompanyId.HasValue)
+        {
+            var canAccess = await companyAccessService.CanAccessCompanyAsync(
+                command.RequesterUserId,
+                command.CompanyId.Value,
+                cancellationToken);
+            if (!canAccess)
+            {
+                throw new ForbiddenException("User cannot create a data request for this company.");
+            }
+        }
+
         var request = new DataSubjectRequest
         {
             RequesterUserId = command.RequesterUserId,
