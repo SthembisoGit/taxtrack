@@ -4,6 +4,8 @@ namespace TaxTrack.Application.Interfaces;
 
 public interface IPrivacyService
 {
+    Task<IReadOnlyCollection<DataSubjectRequestResponse>> ListRequestsAsync(Guid userId, CancellationToken cancellationToken);
+
     Task<DataSubjectRequestResponse> CreateRequestAsync(
         CreateDataSubjectRequestCommand command,
         string correlationId,

@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { InputField, SelectField, TextAreaField } from '@/components/ui/FormField';
 import { Panel } from '@/components/ui/Panel';
 import { apiClient, ApiError } from '@/lib/api/client';
@@ -11,6 +11,7 @@ import type {
 } from '@/lib/api/types';
 
 const requestTypes: DataSubjectRequestType[] = ['Export', 'Deletion'];
+const privacyRequestsQueryKey = ['privacy-requests'] as const;
 
 function getStatusBadgeClass(status: DataSubjectRequestStatus) {
   switch (status) {
@@ -25,12 +26,24 @@ function getStatusBadgeClass(status: DataSubjectRequestStatus) {
   }
 }
 
+function upsertRequest(
+  requests: DataSubjectRequestResponse[] | undefined,
+  nextRequest: DataSubjectRequestResponse,
+) {
+  const existing = requests ?? [];
+  return [nextRequest, ...existing.filter((request) => request.requestId !== nextRequest.requestId)];
+}
+
 function PrivacyRequestSummary({ request }: { request: DataSubjectRequestResponse }) {
   return (
     <div className="summary-grid">
       <div className="summary-metric">
         <span className="metric-label">Request ID</span>
         <strong className="privacy-code">{request.requestId}</strong>
+      </div>
+      <div className="summary-metric">
+        <span className="metric-label">Scope</span>
+        <strong>{request.companyId ? 'Workspace' : 'My account'}</strong>
       </div>
       <div className="summary-metric">
         <span className="metric-label">Type</span>
@@ -43,9 +56,19 @@ function PrivacyRequestSummary({ request }: { request: DataSubjectRequestRespons
         </strong>
       </div>
       <div className="summary-metric">
+        <span className="metric-label">Created</span>
+        <strong>{new Date(request.createdAtUtc).toLocaleString()}</strong>
+      </div>
+      <div className="summary-metric">
         <span className="metric-label">Updated</span>
         <strong>{new Date(request.updatedAtUtc).toLocaleString()}</strong>
       </div>
+      {request.reason ? (
+        <div className="summary-metric full-span">
+          <span className="metric-label">Reason</span>
+          <strong>{request.reason}</strong>
+        </div>
+      ) : null}
       {request.resolutionNote ? (
         <div className="summary-metric full-span">
           <span className="metric-label">Resolution note</span>
@@ -56,7 +79,63 @@ function PrivacyRequestSummary({ request }: { request: DataSubjectRequestRespons
   );
 }
 
+function PrivacyRequestTable({
+  requests,
+  emptyMessage,
+  onView,
+}: {
+  requests: DataSubjectRequestResponse[];
+  emptyMessage: string;
+  onView: (requestId: string) => void;
+}) {
+  if (!requests.length) {
+    return <p className="empty-copy">{emptyMessage}</p>;
+  }
+
+  return (
+    <div className="table-wrap">
+      <table className="data-table">
+        <thead>
+          <tr>
+            <th>Request ID</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Updated</th>
+            <th>Reason</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {requests.map((request) => (
+            <tr key={request.requestId}>
+              <td>
+                <code className="privacy-code">{request.requestId}</code>
+              </td>
+              <td>{request.requestType}</td>
+              <td>
+                <span className={getStatusBadgeClass(request.status)}>{request.status}</span>
+              </td>
+              <td>{new Date(request.updatedAtUtc).toLocaleString()}</td>
+              <td>{request.reason ?? 'No reason supplied'}</td>
+              <td>
+                <button
+                  className="button button-secondary button-compact"
+                  onClick={() => onView(request.requestId)}
+                  type="button"
+                >
+                  View
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function PrivacyPage() {
+  const queryClient = useQueryClient();
   const session = useAuthSession();
   const [scope, setScope] = useState<'personal' | 'workspace'>(
     session?.selectedCompany ? 'workspace' : 'personal',
@@ -71,6 +150,12 @@ export function PrivacyPage() {
   const selectedCompany = session?.selectedCompany;
   const canUseWorkspaceScope = Boolean(selectedCompany);
   const resolvedScope = canUseWorkspaceScope ? scope : 'personal';
+
+  const requestsQuery = useQuery({
+    queryKey: privacyRequestsQueryKey,
+    queryFn: () => apiClient.listDataRequests(),
+    retry: false,
+  });
 
   const activeRequestQuery = useQuery({
     queryKey: ['privacy-request', activeRequestId],
@@ -93,6 +178,10 @@ export function PrivacyPage() {
       setActiveRequestId(response.requestId);
       setLookupRequestId(response.requestId);
       setReason('');
+      queryClient.setQueryData<DataSubjectRequestResponse[]>(
+        privacyRequestsQueryKey,
+        (current) => upsertRequest(current, response),
+      );
     },
     onError: (caught) => {
       if (caught instanceof ApiError) {
@@ -111,6 +200,10 @@ export function PrivacyPage() {
     onSuccess: (response) => {
       setLookupError('');
       setActiveRequestId(response.requestId);
+      queryClient.setQueryData<DataSubjectRequestResponse[]>(
+        privacyRequestsQueryKey,
+        (current) => upsertRequest(current, response),
+      );
     },
     onError: (caught) => {
       if (caught instanceof ApiError) {
@@ -122,9 +215,19 @@ export function PrivacyPage() {
     },
   });
 
+  const allRequests = useMemo(() => requestsQuery.data ?? [], [requestsQuery.data]);
+  const workspaceRequests = useMemo(
+    () => allRequests.filter((request) => request.companyId && request.companyId === selectedCompany?.id),
+    [allRequests, selectedCompany?.id],
+  );
+  const personalRequests = useMemo(
+    () => allRequests.filter((request) => !request.companyId),
+    [allRequests],
+  );
   const activeRequest = useMemo(() => activeRequestQuery.data ?? null, [activeRequestQuery.data]);
   const activeRequestError =
     activeRequestQuery.error instanceof ApiError ? activeRequestQuery.error.problem.detail : '';
+  const listError = requestsQuery.error instanceof ApiError ? requestsQuery.error.problem.detail : '';
 
   function handleLookup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -136,6 +239,12 @@ export function PrivacyPage() {
     }
 
     lookupMutation.mutate();
+  }
+
+  function handleViewRequest(requestId: string) {
+    setLookupError('');
+    setActiveRequestId(requestId);
+    setLookupRequestId(requestId);
   }
 
   return (
@@ -235,6 +344,55 @@ export function PrivacyPage() {
           </div>
         </form>
       </Panel>
+
+      {requestsQuery.isLoading ? (
+        <Panel title="Loading privacy requests" subtitle="Retrieving recent requests submitted by you.">
+          <div className="skeleton-grid">
+            <div className="skeleton-block" />
+            <div className="skeleton-block" />
+          </div>
+        </Panel>
+      ) : null}
+
+      {listError ? (
+        <Panel title="Privacy request list failed" subtitle="We could not load your recent requests.">
+          <div className="banner banner-error">{listError}</div>
+        </Panel>
+      ) : null}
+
+      {!requestsQuery.isLoading && !listError ? (
+        <>
+          <Panel
+            title="Recent workspace requests"
+            subtitle={
+              selectedCompany
+                ? `Requests you submitted for ${selectedCompany.name}`
+                : 'Select a workspace to see company-linked requests.'
+            }
+          >
+            <PrivacyRequestTable
+              emptyMessage={
+                selectedCompany
+                  ? 'No workspace privacy requests submitted by you yet.'
+                  : 'Workspace requests appear once a company is selected.'
+              }
+              onView={handleViewRequest}
+              requests={workspaceRequests}
+            />
+          </Panel>
+
+          <Panel
+            title="Recent personal requests"
+            subtitle="Requests you submitted for your own account rather than a workspace."
+          >
+            <PrivacyRequestTable
+              emptyMessage="No personal privacy requests submitted by you yet."
+              onView={handleViewRequest}
+              requests={personalRequests}
+            />
+          </Panel>
+        </>
+      ) : null}
 
       {activeRequestQuery.isLoading ? (
         <Panel title="Loading privacy request" subtitle="Retrieving the latest recorded status.">

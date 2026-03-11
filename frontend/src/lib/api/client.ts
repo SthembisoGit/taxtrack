@@ -255,6 +255,9 @@ export const apiClient = {
       }),
     });
   },
+  listDataRequests() {
+    return request<DataSubjectRequestResponse[]>('/api/privacy/data-requests');
+  },
   getDataRequest(requestId: string) {
     return request<DataSubjectRequestResponse>(`/api/privacy/data-requests/${requestId}`);
   },

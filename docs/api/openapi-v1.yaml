@@ -338,6 +338,20 @@ paths:
           $ref: '#/components/responses/Forbidden'
 
   /api/privacy/data-requests:
+    get:
+      tags: [Privacy]
+      summary: List data subject requests submitted by the current user
+      responses:
+        '200':
+          description: Current user's data subject requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DataSubjectRequestResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
     post:
       tags: [Privacy]
       summary: Create a data subject request (export or deletion)
@@ -794,10 +808,17 @@ components:
         requestId:
           type: string
           format: uuid
+        companyId:
+          type: string
+          format: uuid
+          nullable: true
         requestType:
           $ref: '#/components/schemas/DataSubjectRequestType'
         status:
           $ref: '#/components/schemas/DataSubjectRequestStatus'
+        reason:
+          type: string
+          nullable: true
         createdAtUtc:
           type: string
           format: date-time

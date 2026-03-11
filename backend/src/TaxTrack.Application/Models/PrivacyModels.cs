@@ -12,8 +12,10 @@ public sealed class CreateDataSubjectRequestCommand
 
 public sealed record DataSubjectRequestResponse(
     Guid RequestId,
+    Guid? CompanyId,
     DataSubjectRequestType RequestType,
     DataSubjectRequestStatus Status,
+    string? Reason,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc,
     string? ResolutionNote);

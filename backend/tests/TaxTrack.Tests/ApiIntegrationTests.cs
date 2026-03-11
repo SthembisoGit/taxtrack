@@ -155,6 +155,44 @@ public sealed class ApiIntegrationTests
     }
 
     [Fact]
+    public async Task PrivacyRequest_ListReturnsCurrentUsersRequestsOnly()
+    {
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        var ownerToken = await RegisterAndLoginAsync(client, "owner-privacy-list@taxtrack.test");
+        var outsiderToken = await RegisterAndLoginAsync(client, "outsider-privacy-list@taxtrack.test");
+        var companyId = await CreateCompanyAsync(client, ownerToken, "REG-PRIVACY-003");
+
+        await CreatePrivacyRequestAsync(client, ownerToken, companyId, "Export");
+        await CreatePrivacyRequestAsync(client, ownerToken, null, "Deletion");
+        await CreatePrivacyRequestAsync(client, outsiderToken, null, "Export");
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/privacy/data-requests");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ownerToken);
+
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var requests = json.RootElement.EnumerateArray().ToArray();
+
+        Assert.Equal(2, requests.Length);
+        Assert.Contains(requests, x => x.GetProperty("requestType").GetString() == "Export");
+        Assert.Contains(requests, x => x.GetProperty("requestType").GetString() == "Deletion");
+        Assert.Contains(requests, x =>
+            x.TryGetProperty("companyId", out var companyValue)
+            && companyValue.ValueKind == JsonValueKind.String
+            && companyValue.GetGuid() == companyId);
+        Assert.Contains(requests, x => x.TryGetProperty("companyId", out var companyValue) && companyValue.ValueKind == JsonValueKind.Null);
+        Assert.All(requests, x =>
+        {
+            Assert.True(x.TryGetProperty("reason", out var reasonValue));
+            Assert.Equal("test-reason", reasonValue.GetString());
+        });
+    }
+
+    [Fact]
     public async Task PrivacyRequest_NonMemberCannotCreateForCompany()
     {
         await using var factory = new ApiTestFactory();
@@ -310,7 +348,7 @@ public sealed class ApiIntegrationTests
     private static async Task<Guid> CreatePrivacyRequestAsync(
         HttpClient client,
         string token,
-        Guid companyId,
+        Guid? companyId,
         string requestType)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/api/privacy/data-requests");

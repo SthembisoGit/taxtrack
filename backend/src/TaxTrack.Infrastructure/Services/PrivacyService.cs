@@ -13,6 +13,15 @@ public sealed class PrivacyService(
     ICompanyAccessService companyAccessService,
     IAuditService auditService) : IPrivacyService
 {
+    public async Task<IReadOnlyCollection<DataSubjectRequestResponse>> ListRequestsAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        return await dbContext.DataSubjectRequests
+            .Where(x => x.RequesterUserId == userId)
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .Select(x => Map(x))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<DataSubjectRequestResponse> CreateRequestAsync(
         CreateDataSubjectRequestCommand command,
         string correlationId,
@@ -72,8 +81,10 @@ public sealed class PrivacyService(
     {
         return new DataSubjectRequestResponse(
             request.Id,
+            request.CompanyId,
             request.RequestType,
             request.Status,
+            request.Reason,
             request.CreatedAtUtc,
             request.UpdatedAtUtc,
             request.ResolutionNote);

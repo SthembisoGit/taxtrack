@@ -135,8 +135,10 @@ export interface CreateDataSubjectRequestInput {
 
 export interface DataSubjectRequestResponse {
   requestId: string;
+  companyId?: string | null;
   requestType: DataSubjectRequestType;
   status: DataSubjectRequestStatus;
+  reason?: string | null;
   createdAtUtc: string;
   updatedAtUtc: string;
   resolutionNote?: string | null;

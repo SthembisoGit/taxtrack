@@ -12,6 +12,14 @@ namespace TaxTrack.Api.Controllers;
 [Route("api/privacy/data-requests")]
 public sealed class PrivacyController(IPrivacyService privacyService) : ControllerBase
 {
+    [HttpGet]
+    public async Task<ActionResult<IReadOnlyCollection<DataSubjectRequestResponse>>> List(CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        var response = await privacyService.ListRequestsAsync(userId, cancellationToken);
+        return Ok(response);
+    }
+
     [HttpPost]
     public async Task<ActionResult<DataSubjectRequestResponse>> Create([FromBody] CreateDataRequestApiRequest request, CancellationToken cancellationToken)
     {
