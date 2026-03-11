@@ -11,6 +11,8 @@ import type {
   AnalyzeAcceptedResponse,
   AuthResponse,
   CompanyResponse,
+  CreateDataSubjectRequestInput,
+  DataSubjectRequestResponse,
   DatasetType,
   NormalizedProblem,
   ReportResponse,
@@ -239,5 +241,21 @@ export const apiClient = {
 
     const suffix = params.size ? `?${params.toString()}` : '';
     return request<AuditLogEventResponse[]>(`/api/audit${suffix}`);
+  },
+  createDataRequest(input: CreateDataSubjectRequestInput) {
+    return request<DataSubjectRequestResponse>('/api/privacy/data-requests', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        companyId: input.companyId,
+        requestType: input.requestType,
+        reason: input.reason,
+      }),
+    });
+  },
+  getDataRequest(requestId: string) {
+    return request<DataSubjectRequestResponse>(`/api/privacy/data-requests/${requestId}`);
   },
 };

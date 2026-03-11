@@ -17,6 +17,7 @@ const navItems = [
   { to: '/upload', label: 'Upload' },
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/report', label: 'Report' },
+  { to: '/privacy', label: 'Privacy' },
   { to: '/audit', label: 'Audit' },
 ];
 

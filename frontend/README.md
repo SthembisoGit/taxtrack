@@ -12,6 +12,7 @@ This frontend slice covers the first end-to-end user flow:
 - trigger tax risk analysis
 - review the dashboard
 - open report download links returned by the API
+- submit POPIA-style export/deletion requests and track request status
 
 ## Stack
 

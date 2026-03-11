@@ -402,6 +402,10 @@ textarea {
   align-items: center;
 }
 
+.align-end {
+  align-self: end;
+}
+
 .upload-dropzone {
   padding: 1.3rem;
   border-radius: 1.3rem;
@@ -472,6 +476,18 @@ textarea {
 .company-card-copy span {
   color: var(--color-text-secondary);
   font-size: 0.95rem;
+}
+
+.privacy-note {
+  padding: 1rem;
+  border-radius: 1rem;
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid var(--color-border);
+}
+
+.privacy-code {
+  font-family: 'IBM Plex Sans', sans-serif;
+  word-break: break-word;
 }
 
 .audit-cell {

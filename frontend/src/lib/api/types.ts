@@ -5,6 +5,8 @@ export type RiskAnalysisJobStatus = 'Queued' | 'Processing' | 'Completed' | 'Fai
 export type RiskLevel = 'Low' | 'Medium' | 'High';
 export type AlertSeverity = 'Info' | 'Warning' | 'Critical';
 export type RuleClass = 'Regulatory' | 'Heuristic';
+export type DataSubjectRequestType = 'Export' | 'Deletion';
+export type DataSubjectRequestStatus = 'Received' | 'InProgress' | 'Completed' | 'Rejected';
 export type AuditEventType =
   | 'LoginSucceeded'
   | 'LoginFailed'
@@ -123,6 +125,21 @@ export interface AuditLogEventResponse {
   metadataJson: string;
   ipAddress?: string | null;
   userAgent?: string | null;
+}
+
+export interface CreateDataSubjectRequestInput {
+  companyId?: string;
+  requestType: DataSubjectRequestType;
+  reason?: string;
+}
+
+export interface DataSubjectRequestResponse {
+  requestId: string;
+  requestType: DataSubjectRequestType;
+  status: DataSubjectRequestStatus;
+  createdAtUtc: string;
+  updatedAtUtc: string;
+  resolutionNote?: string | null;
 }
 
 export interface ValidationIssue {
