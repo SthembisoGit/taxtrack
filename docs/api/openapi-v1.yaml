@@ -303,6 +303,40 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /api/audit:
+    get:
+      tags: [Audit]
+      summary: List audit events
+      parameters:
+        - name: companyId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Optional company scope. When omitted, returns the current user's global security events.
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Audit events retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditLogEventResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
   /api/privacy/data-requests:
     post:
       tags: [Privacy]
@@ -773,6 +807,46 @@ components:
         resolutionNote:
           type: string
 
+    AuditLogEventResponse:
+      type: object
+      required:
+        - eventId
+        - actorUserId
+        - actorEmail
+        - eventType
+        - eventTimeUtc
+        - correlationId
+        - metadataJson
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        actorUserId:
+          type: string
+          format: uuid
+        actorEmail:
+          type: string
+          format: email
+        companyId:
+          type: string
+          format: uuid
+          nullable: true
+        eventType:
+          $ref: '#/components/schemas/AuditEventType'
+        eventTimeUtc:
+          type: string
+          format: date-time
+        correlationId:
+          type: string
+        metadataJson:
+          type: string
+        ipAddress:
+          type: string
+          nullable: true
+        userAgent:
+          type: string
+          nullable: true
+
     ValidationFailureResponse:
       type: object
       required: [uploadId, status, errors]
@@ -849,6 +923,21 @@ components:
     DataSubjectRequestStatus:
       type: string
       enum: [Received, InProgress, Completed, Rejected]
+
+    AuditEventType:
+      type: string
+      enum:
+        - LoginSucceeded
+        - LoginFailed
+        - UploadCreated
+        - UploadValidationFailed
+        - RiskAnalysisRequested
+        - RiskAnalysisCompleted
+        - ReportDownloaded
+        - DataExportRequested
+        - DataDeletionRequested
+        - DataBreachNotified
+        - TokenRefreshed
 
     ProblemDetails:
       type: object

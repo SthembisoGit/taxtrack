@@ -17,6 +17,7 @@ const navItems = [
   { to: '/upload', label: 'Upload' },
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/report', label: 'Report' },
+  { to: '/audit', label: 'Audit' },
 ];
 
 export function AppShell() {
@@ -54,6 +55,7 @@ export function AppShell() {
     queryClient.removeQueries({ queryKey: ['analysis-status'] });
     queryClient.removeQueries({ queryKey: ['risk-result'] });
     queryClient.removeQueries({ queryKey: ['report'] });
+    queryClient.removeQueries({ queryKey: ['audit-log', 'company'] });
     void queryClient.invalidateQueries({ queryKey: companiesQueryKey });
 
     if (location.pathname === '/company/setup') {

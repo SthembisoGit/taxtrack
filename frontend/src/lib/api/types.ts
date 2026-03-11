@@ -5,6 +5,18 @@ export type RiskAnalysisJobStatus = 'Queued' | 'Processing' | 'Completed' | 'Fai
 export type RiskLevel = 'Low' | 'Medium' | 'High';
 export type AlertSeverity = 'Info' | 'Warning' | 'Critical';
 export type RuleClass = 'Regulatory' | 'Heuristic';
+export type AuditEventType =
+  | 'LoginSucceeded'
+  | 'LoginFailed'
+  | 'UploadCreated'
+  | 'UploadValidationFailed'
+  | 'RiskAnalysisRequested'
+  | 'RiskAnalysisCompleted'
+  | 'ReportDownloaded'
+  | 'DataExportRequested'
+  | 'DataDeletionRequested'
+  | 'DataBreachNotified'
+  | 'TokenRefreshed';
 
 export interface AuthResponse {
   userId: string;
@@ -98,6 +110,19 @@ export interface ReportResponse {
   riskSummary: RiskResultResponse;
   alerts: RiskAlert[];
   downloadOptions: ReportDownloadMetadata[];
+}
+
+export interface AuditLogEventResponse {
+  eventId: string;
+  actorUserId: string;
+  actorEmail: string;
+  companyId?: string | null;
+  eventType: AuditEventType;
+  eventTimeUtc: string;
+  correlationId: string;
+  metadataJson: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
 }
 
 export interface ValidationIssue {

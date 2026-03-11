@@ -177,6 +177,50 @@ public sealed class ApiIntegrationTests
         Assert.Equal(HttpStatusCode.Forbidden, createResponse.StatusCode);
     }
 
+    [Fact]
+    public async Task CompanyAuditLog_ReturnsWorkspaceEvents()
+    {
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        var ownerToken = await RegisterAndLoginAsync(client, "owner-audit@taxtrack.test");
+        var companyId = await CreateCompanyAsync(client, ownerToken, "REG-AUDIT-001");
+
+        await UploadTransactionsAsync(client, ownerToken, companyId, "REG-AUDIT-001", "idem-audit-upload-001");
+        await AnalyzeAsync(client, ownerToken, companyId, "idem-audit-analyze-001");
+        await GenerateReportAsync(client, ownerToken, companyId);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/audit?companyId={companyId}&limit=20");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ownerToken);
+
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var events = json.RootElement.EnumerateArray().ToArray();
+
+        Assert.Contains(events, x => x.GetProperty("eventType").GetString() == "UploadCreated");
+        Assert.Contains(events, x => x.GetProperty("eventType").GetString() == "RiskAnalysisCompleted");
+        Assert.Contains(events, x => x.GetProperty("eventType").GetString() == "ReportDownloaded");
+    }
+
+    [Fact]
+    public async Task CompanyAuditLog_NonMemberIsForbidden()
+    {
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        var ownerToken = await RegisterAndLoginAsync(client, "owner-audit-access@taxtrack.test");
+        var outsiderToken = await RegisterAndLoginAsync(client, "outsider-audit-access@taxtrack.test");
+        var companyId = await CreateCompanyAsync(client, ownerToken, "REG-AUDIT-002");
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/audit?companyId={companyId}&limit=20");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", outsiderToken);
+
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
     private static async Task<string> RegisterAndLoginAsync(HttpClient client, string email)
     {
         var tokens = await RegisterAndLoginTokensAsync(client, email);
@@ -283,6 +327,15 @@ public sealed class ApiIntegrationTests
 
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         return json.RootElement.GetProperty("requestId").GetGuid();
+    }
+
+    private static async Task GenerateReportAsync(HttpClient client, string token, Guid companyId)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/report/{companyId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     private static MultipartFormDataContent BuildTransactionsFormContent(Guid companyId, string registrationNumber)

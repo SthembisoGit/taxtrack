@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { ProtectedRoute, PublicOnlyRoute, RootRedirect } from '@/app/guards';
 import { AuthPage } from '@/features/auth/AuthPage';
+import { AuditPage } from '@/features/audit/AuditPage';
 import { CompanySetupPage } from '@/features/company/CompanySetupPage';
 import { UploadPage } from '@/features/upload/UploadPage';
 import { DashboardPage } from '@/features/risk/DashboardPage';
@@ -38,6 +39,10 @@ export const router = createBrowserRouter([
       {
         path: '/report',
         element: <ReportPage />,
+      },
+      {
+        path: '/audit',
+        element: <AuditPage />,
       },
     ],
   },

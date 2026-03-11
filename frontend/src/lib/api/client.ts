@@ -7,6 +7,7 @@ import {
 } from '@/lib/auth/session';
 import { normalizeProblem } from '@/lib/utils/problem';
 import type {
+  AuditLogEventResponse,
   AnalyzeAcceptedResponse,
   AuthResponse,
   CompanyResponse,
@@ -226,5 +227,17 @@ export const apiClient = {
   },
   getReport(companyId: string) {
     return request<ReportResponse>(`/api/report/${companyId}`);
+  },
+  getAuditLog(input: { companyId?: string; limit?: number }) {
+    const params = new URLSearchParams();
+    if (input.companyId) {
+      params.set('companyId', input.companyId);
+    }
+    if (input.limit) {
+      params.set('limit', String(input.limit));
+    }
+
+    const suffix = params.size ? `?${params.toString()}` : '';
+    return request<AuditLogEventResponse[]>(`/api/audit${suffix}`);
   },
 };
