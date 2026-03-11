@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using TaxTrack.Api.Common;
 using TaxTrack.Infrastructure;
 using TaxTrack.Infrastructure.Data;
 using TaxTrack.Infrastructure.Options;
@@ -87,6 +88,57 @@ if (!app.Environment.IsEnvironment("Testing"))
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapGet("/health/live", () =>
+{
+    var response = new HealthStatusResponse(
+        "TaxTrack.Api",
+        "Healthy",
+        DateTime.UtcNow,
+        [new HealthCheckEntryResponse("api", "Healthy", "Process is running.")]);
+
+    return Results.Ok(response);
+});
+
+app.MapGet("/health/ready", async (IServiceScopeFactory scopeFactory) =>
+{
+    await using var scope = scopeFactory.CreateAsyncScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<TaxTrackDbContext>();
+
+    try
+    {
+        var canConnect = await dbContext.Database.CanConnectAsync();
+        if (!canConnect)
+        {
+            var unavailable = new HealthStatusResponse(
+                "TaxTrack.Api",
+                "Unhealthy",
+                DateTime.UtcNow,
+                [new HealthCheckEntryResponse("database", "Unhealthy", "Database connectivity check failed.")]);
+
+            return Results.Json(unavailable, statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
+
+        var healthy = new HealthStatusResponse(
+            "TaxTrack.Api",
+            "Healthy",
+            DateTime.UtcNow,
+            [new HealthCheckEntryResponse("database", "Healthy", "Database connectivity verified.")]);
+
+        return Results.Ok(healthy);
+    }
+    catch (Exception ex)
+    {
+        var failure = new HealthStatusResponse(
+            "TaxTrack.Api",
+            "Unhealthy",
+            DateTime.UtcNow,
+            [new HealthCheckEntryResponse("database", "Unhealthy", ex.Message)]);
+
+        return Results.Json(failure, statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+});
+
 app.MapControllers().RequireRateLimiting("global");
 
 app.Run();

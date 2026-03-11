@@ -9,6 +9,35 @@ namespace TaxTrack.Tests;
 public sealed class ApiIntegrationTests
 {
     [Fact]
+    public async Task HealthLive_ReturnsHealthy()
+    {
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        using var response = await client.GetAsync("/health/live");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("TaxTrack.Api", json.RootElement.GetProperty("service").GetString());
+        Assert.Equal("Healthy", json.RootElement.GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public async Task HealthReady_ReturnsHealthy()
+    {
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        using var response = await client.GetAsync("/health/ready");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("Healthy", json.RootElement.GetProperty("status").GetString());
+        var checks = json.RootElement.GetProperty("checks").EnumerateArray().ToArray();
+        Assert.Contains(checks, x => x.GetProperty("name").GetString() == "database");
+    }
+
+    [Fact]
     public async Task CompanyList_ReturnsOnlyAccessibleCompanies()
     {
         await using var factory = new ApiTestFactory();

@@ -10,6 +10,7 @@ servers:
   - url: https://api.taxtrack.example
 tags:
   - name: Auth
+  - name: Operations
   - name: Company
   - name: Financial Data
   - name: Risk Analysis
@@ -20,6 +21,38 @@ security:
   - bearerAuth: []
 
 paths:
+  /health/live:
+    get:
+      tags: [Operations]
+      summary: Liveness probe
+      security: []
+      responses:
+        '200':
+          description: API process is running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatusResponse'
+
+  /health/ready:
+    get:
+      tags: [Operations]
+      summary: Readiness probe
+      security: []
+      responses:
+        '200':
+          description: API and database are ready to serve requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatusResponse'
+        '503':
+          description: API is running but dependencies are not ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatusResponse'
+
   /api/auth/register:
     post:
       tags: [Auth]
@@ -827,6 +860,36 @@ components:
           format: date-time
         resolutionNote:
           type: string
+
+    HealthCheckEntryResponse:
+      type: object
+      required: [name, status]
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum: [Healthy, Unhealthy]
+        detail:
+          type: string
+          nullable: true
+
+    HealthStatusResponse:
+      type: object
+      required: [service, status, checkedAtUtc, checks]
+      properties:
+        service:
+          type: string
+        status:
+          type: string
+          enum: [Healthy, Unhealthy]
+        checkedAtUtc:
+          type: string
+          format: date-time
+        checks:
+          type: array
+          items:
+            $ref: '#/components/schemas/HealthCheckEntryResponse'
 
     AuditLogEventResponse:
       type: object

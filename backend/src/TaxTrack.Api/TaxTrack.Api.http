@@ -1,6 +1,47 @@
 @TaxTrack.Api_HostAddress = http://localhost:5100
+@AccessToken = replace-with-jwt
+@CompanyId = replace-with-company-id
+@UploadId = replace-with-upload-id
+@AnalysisId = replace-with-analysis-id
 
-GET {{TaxTrack.Api_HostAddress}}/weatherforecast/
+### Liveness
+GET {{TaxTrack.Api_HostAddress}}/health/live
 Accept: application/json
 
-###
+### Readiness
+GET {{TaxTrack.Api_HostAddress}}/health/ready
+Accept: application/json
+
+### Login
+POST {{TaxTrack.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "owner@example.com",
+  "password": "StrongPass!1234"
+}
+
+### List companies
+GET {{TaxTrack.Api_HostAddress}}/api/company
+Accept: application/json
+Authorization: Bearer {{AccessToken}}
+
+### Upload status
+GET {{TaxTrack.Api_HostAddress}}/api/financial/upload/{{UploadId}}/status
+Accept: application/json
+Authorization: Bearer {{AccessToken}}
+
+### Analysis status
+GET {{TaxTrack.Api_HostAddress}}/api/risk/analyze/{{AnalysisId}}/status
+Accept: application/json
+Authorization: Bearer {{AccessToken}}
+
+### Latest risk result
+GET {{TaxTrack.Api_HostAddress}}/api/risk/{{CompanyId}}
+Accept: application/json
+Authorization: Bearer {{AccessToken}}
+
+### Report
+GET {{TaxTrack.Api_HostAddress}}/api/report/{{CompanyId}}
+Accept: application/json
+Authorization: Bearer {{AccessToken}}

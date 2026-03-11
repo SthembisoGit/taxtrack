@@ -45,6 +45,22 @@ Feature coding starts only after all seven gates in `docs/12-readiness-checklist
 
 ## Local Commands
 
-- Build: `dotnet build backend/TaxTrack.sln`
-- Test: `dotnet test backend/TaxTrack.sln`
+- Backend run: `dotnet run --project backend/src/TaxTrack.Api`
+- Backend build: `dotnet build backend/TaxTrack.sln`
+- Backend test: `dotnet test backend/TaxTrack.sln`
+- Frontend run: `cd frontend && npm run dev`
+- Frontend test: `cd frontend && npm run test -- --run`
+- Frontend build: `cd frontend && npm run build`
 - Validate OpenAPI: `npx -y @apidevtools/swagger-cli validate docs/api/openapi-v1.yaml`
+
+## Environment Templates
+
+- Backend example: `backend/.env.example`
+- Frontend example: `frontend/.env.example`
+
+## Operational Checks
+
+- Liveness: `GET /health/live`
+- Readiness: `GET /health/ready`
+
+Use the smoke-check flow in `infra/deployment-smoke-checks.md` after every deploy.

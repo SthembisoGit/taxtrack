@@ -13,3 +13,7 @@ Scale path:
 - Storage: Azure Blob Storage
 - Identity: Azure AD B2C
 - Monitoring: Azure Application Insights
+
+## Deployment runbooks
+
+- Smoke checks: `infra/deployment-smoke-checks.md`
