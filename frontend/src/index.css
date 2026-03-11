@@ -357,6 +357,16 @@ textarea {
   border: 1px dashed rgba(30, 58, 95, 0.24);
   background:
     linear-gradient(135deg, rgba(30, 58, 95, 0.04), rgba(255, 255, 255, 0.8));
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.upload-dropzone:hover,
+.upload-dropzone:focus-visible,
+.upload-dropzone.is-dragging {
+  border-color: var(--color-primary);
+  box-shadow: 0 14px 34px rgba(30, 58, 95, 0.12);
+  transform: translateY(-1px);
 }
 
 .dropzone-title,

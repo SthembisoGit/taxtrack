@@ -67,62 +67,81 @@ export function AuthPage() {
       <Panel className="auth-panel">
         <div className="tab-strip" role="tablist" aria-label="Authentication mode">
           <button
+            aria-controls="auth-panel-login"
+            aria-selected={mode === 'login'}
             className={mode === 'login' ? 'tab is-active' : 'tab'}
+            id="auth-tab-login"
             onClick={() => startTransition(() => setMode('login'))}
+            role="tab"
             type="button"
           >
             Login
           </button>
           <button
+            aria-controls="auth-panel-register"
+            aria-selected={mode === 'register'}
             className={mode === 'register' ? 'tab is-active' : 'tab'}
+            id="auth-tab-register"
             onClick={() => startTransition(() => setMode('register'))}
+            role="tab"
             type="button"
           >
             Register
           </button>
         </div>
 
-        <form className="stack" onSubmit={handleSubmit}>
-          {error ? <div className="banner banner-error">{error}</div> : null}
+        <div
+          aria-labelledby={mode === 'login' ? 'auth-tab-login' : 'auth-tab-register'}
+          id={mode === 'login' ? 'auth-panel-login' : 'auth-panel-register'}
+          role="tabpanel"
+        >
+          <form className="stack" onSubmit={handleSubmit}>
+            {error ? <div className="banner banner-error">{error}</div> : null}
 
-          <InputField
-            autoComplete="email"
-            label="Email"
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="name@company.co.za"
-            required
-            type="email"
-            value={email}
-          />
-          <InputField
-            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-            helperText={mode === 'register' ? 'Use at least 12 characters.' : undefined}
-            label="Password"
-            minLength={12}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            type="password"
-            value={password}
-          />
+            <InputField
+              autoComplete="email"
+              label="Email"
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="name@company.co.za"
+              required
+              type="email"
+              value={email}
+            />
+            <InputField
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              helperText={mode === 'register' ? 'Use at least 12 characters.' : undefined}
+              label="Password"
+              minLength={12}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              type="password"
+              value={password}
+            />
 
-          {mode === 'register' ? (
-            <SelectField
-              label="Primary role"
-              onChange={(event) => setRole(event.target.value as (typeof roles)[number])}
-              value={role}
+            {mode === 'register' ? (
+              <SelectField
+                label="Primary role"
+                onChange={(event) => setRole(event.target.value as (typeof roles)[number])}
+                value={role}
+              >
+                {roles.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </SelectField>
+            ) : null}
+
+            <button
+              aria-busy={loading}
+              className="button button-primary"
+              disabled={loading}
+              type="submit"
             >
-              {roles.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </SelectField>
-          ) : null}
-
-          <button className="button button-primary" disabled={loading} type="submit">
-            {loading ? 'Working...' : mode === 'login' ? 'Access workspace' : 'Create account'}
-          </button>
-        </form>
+              {loading ? 'Working...' : mode === 'login' ? 'Access workspace' : 'Create account'}
+            </button>
+          </form>
+        </div>
       </Panel>
     </div>
   );

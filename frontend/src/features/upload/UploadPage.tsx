@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState, type ChangeEvent, type DragEvent, type KeyboardEvent } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Panel } from '@/components/ui/Panel';
 import { SelectField, TextAreaField } from '@/components/ui/FormField';
@@ -16,12 +16,53 @@ const datasets: { label: string; value: DatasetType }[] = [
 export function UploadPage() {
   const session = useAuthSession();
   const companyId = session?.selectedCompany?.id;
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [datasetType, setDatasetType] = useState<DatasetType>('transactions');
   const [file, setFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [notes, setNotes] = useState('');
   const [lastUploadId, setLastUploadId] = useState('');
   const [validationMessage, setValidationMessage] = useState('');
   const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
+
+  function setSelectedFile(nextFile: File | null) {
+    setFile(nextFile);
+  }
+
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    setSelectedFile(event.target.files?.[0] ?? null);
+  }
+
+  function openFilePicker() {
+    fileInputRef.current?.click();
+  }
+
+  function handleDragEnter(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDragging(true);
+  }
+
+  function handleDragLeave(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDragging(false);
+  }
+
+  function handleDragOver(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+  }
+
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDragging(false);
+    setSelectedFile(event.dataTransfer.files?.[0] ?? null);
+  }
+
+  function handleDropzoneKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      openFilePicker();
+    }
+  }
 
   const uploadMutation = useMutation({
     mutationFn: async () => {
@@ -107,7 +148,8 @@ export function UploadPage() {
               <input
                 accept=".csv,text/csv"
                 className="field-input file-input"
-                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                onChange={handleFileChange}
+                ref={fileInputRef}
                 required
                 type="file"
               />
@@ -123,7 +165,19 @@ export function UploadPage() {
             value={notes}
           />
 
-          <div className="upload-dropzone" aria-live="polite">
+          <div
+            aria-label="Drag a CSV here or browse to select one."
+            aria-live="polite"
+            className={isDragging ? 'upload-dropzone is-dragging' : 'upload-dropzone'}
+            onClick={openFilePicker}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            onKeyDown={handleDropzoneKeyDown}
+            role="button"
+            tabIndex={0}
+          >
             <p className="dropzone-title">{file ? file.name : 'Drag a CSV here or browse to select one.'}</p>
             <p className="dropzone-copy">
               {file
