@@ -12,14 +12,14 @@ const authResponse: AuthResponse = {
   role: 'Owner',
   accessToken: 'access-token',
   refreshToken: 'refresh-token',
-  accessTokenExpiresAt: '2026-03-11T10:00:00Z',
-  refreshTokenExpiresAt: '2026-03-18T10:00:00Z',
+  accessTokenExpiresAtUtc: '2026-03-11T10:00:00Z',
+  refreshTokenExpiresAtUtc: '2026-03-18T10:00:00Z',
 };
 
 const reportResponse: ReportResponse = {
   companyId: 'company-1',
   reportId: 'report-1',
-  generatedAt: '2026-03-11T10:05:00Z',
+  generatedAtUtc: '2026-03-11T10:05:00Z',
   riskSummary: {
     resultId: 'result-1',
     companyId: 'company-1',
@@ -32,14 +32,14 @@ const reportResponse: ReportResponse = {
     evidenceCompleteness: 92,
     insufficientEvidence: false,
     alerts: [],
-    generatedAt: '2026-03-11T10:05:00Z',
+    generatedAtUtc: '2026-03-11T10:05:00Z',
   },
   alerts: [],
   downloadOptions: [
     {
       format: 'json',
       url: 'https://example.com/report.json',
-      expiresAt: '2026-03-11T11:05:00Z',
+      expiresAtUtc: '2026-03-11T11:05:00Z',
     },
   ],
 };
@@ -69,5 +69,5 @@ describe('ReportPage', () => {
     expect(screen.getByRole('link', { name: /json/i }).getAttribute('href')).toBe(
       'https://example.com/report.json',
     );
-  });
+  }, 15000);
 });

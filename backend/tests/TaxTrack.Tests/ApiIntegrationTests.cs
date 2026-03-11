@@ -9,6 +9,34 @@ namespace TaxTrack.Tests;
 public sealed class ApiIntegrationTests
 {
     [Fact]
+    public async Task CompanyList_ReturnsOnlyAccessibleCompanies()
+    {
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        var ownerToken = await RegisterAndLoginAsync(client, "owner-company-list@taxtrack.test");
+        var outsiderToken = await RegisterAndLoginAsync(client, "outsider-company-list@taxtrack.test");
+
+        await CreateCompanyAsync(client, ownerToken, "REG-COMPANY-001");
+        await CreateCompanyAsync(client, ownerToken, "REG-COMPANY-002");
+        await CreateCompanyAsync(client, outsiderToken, "REG-COMPANY-003");
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/company");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ownerToken);
+
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var companies = json.RootElement.EnumerateArray().ToArray();
+
+        Assert.Equal(2, companies.Length);
+        Assert.Contains(companies, x => x.GetProperty("registrationNumber").GetString() == "REG-COMPANY-001");
+        Assert.Contains(companies, x => x.GetProperty("registrationNumber").GetString() == "REG-COMPANY-002");
+        Assert.DoesNotContain(companies, x => x.GetProperty("registrationNumber").GetString() == "REG-COMPANY-003");
+    }
+
+    [Fact]
     public async Task Upload_WithoutIdempotencyKey_ReturnsBadRequest()
     {
         await using var factory = new ApiTestFactory();

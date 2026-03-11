@@ -9,16 +9,16 @@ const staleAuth: AuthResponse = {
   role: 'Owner',
   accessToken: 'stale-access-token',
   refreshToken: 'valid-refresh-token',
-  accessTokenExpiresAt: '2026-03-11T10:00:00Z',
-  refreshTokenExpiresAt: '2026-03-18T10:00:00Z',
+  accessTokenExpiresAtUtc: '2026-03-11T10:00:00Z',
+  refreshTokenExpiresAtUtc: '2026-03-18T10:00:00Z',
 };
 
 const refreshedAuth: AuthResponse = {
   ...staleAuth,
   accessToken: 'fresh-access-token',
   refreshToken: 'rotated-refresh-token',
-  accessTokenExpiresAt: '2026-03-11T11:00:00Z',
-  refreshTokenExpiresAt: '2026-03-18T11:00:00Z',
+  accessTokenExpiresAtUtc: '2026-03-11T11:00:00Z',
+  refreshTokenExpiresAtUtc: '2026-03-18T11:00:00Z',
 };
 
 const riskResult: RiskResultResponse = {
@@ -43,7 +43,7 @@ const riskResult: RiskResultResponse = {
       evidenceJson: '{}',
     },
   ],
-  generatedAt: '2026-03-11T10:05:00Z',
+  generatedAtUtc: '2026-03-11T10:05:00Z',
 };
 
 function jsonResponse(payload: unknown, status = 200) {

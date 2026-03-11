@@ -10,6 +10,19 @@ namespace TaxTrack.Infrastructure.Services;
 
 public sealed class CompanyService(TaxTrackDbContext dbContext) : ICompanyService
 {
+    public async Task<IReadOnlyCollection<CompanyResponse>> ListCompaniesAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var companies = await dbContext.Companies
+            .AsNoTracking()
+            .Where(company => dbContext.CompanyMemberships.Any(
+                membership => membership.CompanyId == company.Id && membership.UserId == userId && membership.IsActive))
+            .OrderBy(x => x.Name)
+            .ThenBy(x => x.RegistrationNumber)
+            .ToListAsync(cancellationToken);
+
+        return companies.Select(ToResponse).ToArray();
+    }
+
     public async Task<CompanyResponse> CreateCompanyAsync(Guid userId, CreateCompanyRequest request, CancellationToken cancellationToken)
     {
         var exists = await dbContext.Companies

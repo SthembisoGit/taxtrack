@@ -174,6 +174,9 @@ export const apiClient = {
       body: JSON.stringify(input),
     });
   },
+  listCompanies() {
+    return request<CompanyResponse[]>('/api/company');
+  },
   uploadFinancial(input: {
     companyId: string;
     datasetType: DatasetType;

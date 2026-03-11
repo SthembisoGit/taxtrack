@@ -60,7 +60,7 @@ export function ReportPage() {
 
           <Panel
             title="Download options"
-            subtitle={`Generated ${new Date(reportQuery.data.generatedAt).toLocaleString()}`}
+            subtitle={`Generated ${new Date(reportQuery.data.generatedAtUtc).toLocaleString()}`}
           >
             <div className="download-list">
               {reportQuery.data.downloadOptions.map((download) => (
@@ -72,7 +72,7 @@ export function ReportPage() {
                   target="_blank"
                 >
                   <strong>{download.format.toUpperCase()}</strong>
-                  <span>Expires {new Date(download.expiresAt).toLocaleString()}</span>
+                  <span>Expires {new Date(download.expiresAtUtc).toLocaleString()}</span>
                 </a>
               ))}
             </div>

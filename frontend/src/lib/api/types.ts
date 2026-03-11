@@ -12,8 +12,8 @@ export interface AuthResponse {
   role: UserRole;
   accessToken: string;
   refreshToken: string;
-  accessTokenExpiresAt: string;
-  refreshTokenExpiresAt: string;
+  accessTokenExpiresAtUtc: string;
+  refreshTokenExpiresAtUtc: string;
 }
 
 export interface CompanyResponse {
@@ -23,7 +23,7 @@ export interface CompanyResponse {
   industry: string;
   taxReference: string;
   ownerUserId: string;
-  createdAt: string;
+  createdAtUtc: string;
 }
 
 export interface UploadAcceptedResponse {
@@ -31,7 +31,7 @@ export interface UploadAcceptedResponse {
   companyId: string;
   datasetType: DatasetType;
   status: UploadJobStatus;
-  receivedAt: string;
+  receivedAtUtc: string;
 }
 
 export interface UploadStatusResponse {
@@ -42,14 +42,14 @@ export interface UploadStatusResponse {
   rejectedRows: number;
   evidenceCompleteness: number;
   insufficientEvidence: boolean;
-  updatedAt: string;
+  updatedAtUtc: string;
 }
 
 export interface AnalyzeAcceptedResponse {
   analysisId: string;
   companyId: string;
   status: RiskAnalysisJobStatus;
-  queuedAt: string;
+  queuedAtUtc: string;
 }
 
 export interface RiskAnalysisJobStatusResponse {
@@ -57,7 +57,7 @@ export interface RiskAnalysisJobStatusResponse {
   companyId: string;
   status: RiskAnalysisJobStatus;
   resultId?: string | null;
-  updatedAt: string;
+  updatedAtUtc: string;
 }
 
 export interface RiskAlert {
@@ -82,19 +82,19 @@ export interface RiskResultResponse {
   evidenceCompleteness: number;
   insufficientEvidence: boolean;
   alerts: RiskAlert[];
-  generatedAt: string;
+  generatedAtUtc: string;
 }
 
 export interface ReportDownloadMetadata {
   format: string;
   url: string;
-  expiresAt: string;
+  expiresAtUtc: string;
 }
 
 export interface ReportResponse {
   companyId: string;
   reportId: string;
-  generatedAt: string;
+  generatedAtUtc: string;
   riskSummary: RiskResultResponse;
   alerts: RiskAlert[];
   downloadOptions: ReportDownloadMetadata[];

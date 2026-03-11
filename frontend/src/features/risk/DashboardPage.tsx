@@ -111,7 +111,7 @@ export function DashboardPage() {
             </div>
             <div className="summary-metric">
               <span className="metric-label">Updated</span>
-              <strong>{new Date(analysisStatusQuery.data.updatedAt).toLocaleString()}</strong>
+              <strong>{new Date(analysisStatusQuery.data.updatedAtUtc).toLocaleString()}</strong>
             </div>
           </div>
         </Panel>
@@ -143,7 +143,7 @@ export function DashboardPage() {
               <p className="metric-caption">Active rule-based warnings</p>
             </Panel>
             <Panel title="Generated at">
-              <p className="metric-callout">{new Date(riskQuery.data.generatedAt).toLocaleString()}</p>
+              <p className="metric-callout">{new Date(riskQuery.data.generatedAtUtc).toLocaleString()}</p>
               <p className="metric-caption">Latest completed analysis</p>
             </Panel>
             <Panel title="Company">

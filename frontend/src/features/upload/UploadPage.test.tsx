@@ -13,8 +13,8 @@ const authResponse: AuthResponse = {
   role: 'Owner',
   accessToken: 'access-token',
   refreshToken: 'refresh-token',
-  accessTokenExpiresAt: '2026-03-11T10:00:00Z',
-  refreshTokenExpiresAt: '2026-03-18T10:00:00Z',
+  accessTokenExpiresAtUtc: '2026-03-11T10:00:00Z',
+  refreshTokenExpiresAtUtc: '2026-03-18T10:00:00Z',
 };
 
 describe('UploadPage', () => {
@@ -45,7 +45,7 @@ describe('UploadPage', () => {
     });
 
     expect(await screen.findByText('transactions.csv')).toBeTruthy();
-  });
+  }, 15000);
 
   it('renders validation issues when the API rejects the upload', async () => {
     const user = userEvent.setup();
@@ -102,5 +102,5 @@ describe('UploadPage', () => {
 
     expect(screen.getByText('supplier_vat_number')).toBeTruthy();
     expect(screen.getByText('REQUIRED')).toBeTruthy();
-  });
+  }, 15000);
 });

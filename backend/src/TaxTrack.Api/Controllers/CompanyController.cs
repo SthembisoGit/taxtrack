@@ -12,6 +12,14 @@ namespace TaxTrack.Api.Controllers;
 [Route("api/company")]
 public sealed class CompanyController(ICompanyService companyService) : ControllerBase
 {
+    [HttpGet]
+    public async Task<ActionResult<IReadOnlyCollection<CompanyResponse>>> List(CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        var response = await companyService.ListCompaniesAsync(userId, cancellationToken);
+        return Ok(response);
+    }
+
     [HttpPost]
     public async Task<ActionResult<CompanyResponse>> Create([FromBody] CreateCompanyApiRequest request, CancellationToken cancellationToken)
     {

@@ -14,8 +14,8 @@ const authResponse: AuthResponse = {
   role: 'Owner',
   accessToken: 'access-token',
   refreshToken: 'refresh-token',
-  accessTokenExpiresAt: '2026-03-11T10:00:00Z',
-  refreshTokenExpiresAt: '2026-03-18T10:00:00Z',
+  accessTokenExpiresAtUtc: '2026-03-11T10:00:00Z',
+  refreshTokenExpiresAtUtc: '2026-03-18T10:00:00Z',
 };
 
 const company: CompanyResponse = {
@@ -25,7 +25,7 @@ const company: CompanyResponse = {
   industry: 'Technology',
   taxReference: '1234567890',
   ownerUserId: 'user-1',
-  createdAt: '2026-03-11T10:00:00Z',
+  createdAtUtc: '2026-03-11T10:00:00Z',
 };
 
 describe('session storage', () => {

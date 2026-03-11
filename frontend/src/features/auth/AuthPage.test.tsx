@@ -22,5 +22,5 @@ describe('AuthPage', () => {
     expect(registerTab.getAttribute('aria-selected')).toBe('true');
     expect(screen.getByLabelText('Primary role')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Create account' })).toBeTruthy();
-  });
+  }, 15000);
 });

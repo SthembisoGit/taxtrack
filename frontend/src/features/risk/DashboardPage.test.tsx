@@ -12,8 +12,8 @@ const authResponse: AuthResponse = {
   role: 'Owner',
   accessToken: 'access-token',
   refreshToken: 'refresh-token',
-  accessTokenExpiresAt: '2026-03-11T10:00:00Z',
-  refreshTokenExpiresAt: '2026-03-18T10:00:00Z',
+  accessTokenExpiresAtUtc: '2026-03-11T10:00:00Z',
+  refreshTokenExpiresAtUtc: '2026-03-18T10:00:00Z',
 };
 
 const riskResult: RiskResultResponse = {
@@ -38,7 +38,7 @@ const riskResult: RiskResultResponse = {
       evidenceJson: '{}',
     },
   ],
-  generatedAt: '2026-03-11T10:05:00Z',
+  generatedAtUtc: '2026-03-11T10:05:00Z',
 };
 
 describe('DashboardPage', () => {

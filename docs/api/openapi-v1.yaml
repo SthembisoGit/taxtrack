@@ -90,6 +90,20 @@ paths:
           $ref: '#/components/responses/Unauthorized'
 
   /api/company:
+    get:
+      tags: [Company]
+      summary: List companies accessible to the current user
+      responses:
+        '200':
+          description: Companies retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CompanyResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
     post:
       tags: [Company]
       summary: Create company
@@ -458,7 +472,7 @@ components:
 
     AuthResponse:
       type: object
-      required: [userId, email, role, accessToken, refreshToken, accessTokenExpiresAt, refreshTokenExpiresAt]
+      required: [userId, email, role, accessToken, refreshToken, accessTokenExpiresAtUtc, refreshTokenExpiresAtUtc]
       properties:
         userId:
           type: string
@@ -472,10 +486,10 @@ components:
           type: string
         refreshToken:
           type: string
-        accessTokenExpiresAt:
+        accessTokenExpiresAtUtc:
           type: string
           format: date-time
-        refreshTokenExpiresAt:
+        refreshTokenExpiresAtUtc:
           type: string
           format: date-time
 
@@ -500,7 +514,7 @@ components:
 
     CompanyResponse:
       type: object
-      required: [id, name, registrationNumber, industry, taxReference, ownerUserId, createdAt]
+      required: [id, name, registrationNumber, industry, taxReference, ownerUserId, createdAtUtc]
       properties:
         id:
           type: string
@@ -516,17 +530,17 @@ components:
         ownerUserId:
           type: string
           format: uuid
-        createdAt:
+        createdAtUtc:
           type: string
           format: date-time
 
     DatasetType:
       type: string
-      enum: [company, transactions, payroll, vat_submissions]
+      enum: [transactions, payroll, vat_submissions]
 
     UploadAcceptedResponse:
       type: object
-      required: [uploadId, companyId, datasetType, status, receivedAt]
+      required: [uploadId, companyId, datasetType, status, receivedAtUtc]
       properties:
         uploadId:
           type: string
@@ -538,13 +552,13 @@ components:
           $ref: '#/components/schemas/DatasetType'
         status:
           $ref: '#/components/schemas/UploadJobStatus'
-        receivedAt:
+        receivedAtUtc:
           type: string
           format: date-time
 
     UploadJobStatusResponse:
       type: object
-      required: [uploadId, companyId, status, updatedAt]
+      required: [uploadId, companyId, status, acceptedRows, rejectedRows, evidenceCompleteness, insufficientEvidence, updatedAtUtc]
       properties:
         uploadId:
           type: string
@@ -554,20 +568,17 @@ components:
           format: uuid
         status:
           $ref: '#/components/schemas/UploadJobStatus'
-        validationSummary:
-          type: object
-          properties:
-            acceptedRows:
-              type: integer
-            rejectedRows:
-              type: integer
-            evidenceCompleteness:
-              type: integer
-              minimum: 0
-              maximum: 100
-            insufficientEvidence:
-              type: boolean
-        updatedAt:
+        acceptedRows:
+          type: integer
+        rejectedRows:
+          type: integer
+        evidenceCompleteness:
+          type: integer
+          minimum: 0
+          maximum: 100
+        insufficientEvidence:
+          type: boolean
+        updatedAtUtc:
           type: string
           format: date-time
 
@@ -587,7 +598,7 @@ components:
 
     AnalyzeAcceptedResponse:
       type: object
-      required: [analysisId, companyId, status, queuedAt]
+      required: [analysisId, companyId, status, queuedAtUtc]
       properties:
         analysisId:
           type: string
@@ -597,13 +608,13 @@ components:
           format: uuid
         status:
           $ref: '#/components/schemas/RiskAnalysisJobStatus'
-        queuedAt:
+        queuedAtUtc:
           type: string
           format: date-time
 
     RiskAnalysisJobStatusResponse:
       type: object
-      required: [analysisId, companyId, status, updatedAt]
+      required: [analysisId, companyId, status, updatedAtUtc]
       properties:
         analysisId:
           type: string
@@ -616,7 +627,7 @@ components:
         resultId:
           type: string
           format: uuid
-        updatedAt:
+        updatedAtUtc:
           type: string
           format: date-time
 
@@ -634,7 +645,7 @@ components:
         - evidenceCompleteness
         - insufficientEvidence
         - alerts
-        - generatedAt
+        - generatedAtUtc
       properties:
         resultId:
           type: string
@@ -671,7 +682,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/RiskAlert'
-        generatedAt:
+        generatedAtUtc:
           type: string
           format: date-time
 
@@ -694,7 +705,7 @@ components:
 
     ReportResponse:
       type: object
-      required: [companyId, reportId, generatedAt, riskSummary, alerts, download]
+      required: [companyId, reportId, generatedAtUtc, riskSummary, alerts, downloadOptions]
       properties:
         companyId:
           type: string
@@ -702,62 +713,32 @@ components:
         reportId:
           type: string
           format: uuid
-        generatedAt:
+        generatedAtUtc:
           type: string
           format: date-time
         riskSummary:
-          type: object
-          required:
-            - riskScore
-            - regulatoryScore
-            - heuristicScore
-            - riskLevel
-            - taxPolicyVersion
-            - policyEffectiveDate
-            - evidenceCompleteness
-            - insufficientEvidence
-          properties:
-            riskScore:
-              type: integer
-              minimum: 0
-              maximum: 100
-            regulatoryScore:
-              type: integer
-              minimum: 0
-              maximum: 70
-            heuristicScore:
-              type: integer
-              minimum: 0
-              maximum: 30
-            riskLevel:
-              $ref: '#/components/schemas/RiskLevel'
-            taxPolicyVersion:
-              type: string
-            policyEffectiveDate:
-              type: string
-              format: date
-            evidenceCompleteness:
-              type: integer
-              minimum: 0
-              maximum: 100
-            insufficientEvidence:
-              type: boolean
+          $ref: '#/components/schemas/RiskResultResponse'
         alerts:
           type: array
           items:
             $ref: '#/components/schemas/RiskAlert'
-        download:
-          type: object
-          required: [format, url, expiresAt]
-          properties:
-            format:
-              type: string
-              enum: [pdf, json]
-            url:
-              type: string
-            expiresAt:
-              type: string
-              format: date-time
+        downloadOptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportDownloadMetadata'
+
+    ReportDownloadMetadata:
+      type: object
+      required: [format, url, expiresAtUtc]
+      properties:
+        format:
+          type: string
+          enum: [pdf, json]
+        url:
+          type: string
+        expiresAtUtc:
+          type: string
+          format: date-time
 
     CreateDataSubjectRequest:
       type: object
@@ -774,7 +755,7 @@ components:
 
     DataSubjectRequestResponse:
       type: object
-      required: [requestId, requestType, status, createdAt, updatedAt]
+      required: [requestId, requestType, status, createdAtUtc, updatedAtUtc]
       properties:
         requestId:
           type: string
@@ -783,10 +764,10 @@ components:
           $ref: '#/components/schemas/DataSubjectRequestType'
         status:
           $ref: '#/components/schemas/DataSubjectRequestStatus'
-        createdAt:
+        createdAtUtc:
           type: string
           format: date-time
-        updatedAt:
+        updatedAtUtc:
           type: string
           format: date-time
         resolutionNote:
@@ -823,7 +804,7 @@ components:
 
     UserResponse:
       type: object
-      required: [id, email, role, createdAt]
+      required: [id, email, role, createdAtUtc]
       properties:
         id:
           type: string
@@ -833,7 +814,7 @@ components:
           format: email
         role:
           $ref: '#/components/schemas/UserRole'
-        createdAt:
+        createdAtUtc:
           type: string
           format: date-time
 

@@ -13,8 +13,8 @@ export interface AppSession {
   role: UserRole;
   accessToken: string;
   refreshToken: string;
-  accessTokenExpiresAt: string;
-  refreshTokenExpiresAt: string;
+  accessTokenExpiresAtUtc: string;
+  refreshTokenExpiresAtUtc: string;
   selectedCompany?: SelectedCompany;
 }
 
@@ -111,8 +111,8 @@ export function toAppSession(auth: AuthResponse, selectedCompany?: SelectedCompa
     role: auth.role,
     accessToken: auth.accessToken,
     refreshToken: auth.refreshToken,
-    accessTokenExpiresAt: auth.accessTokenExpiresAt,
-    refreshTokenExpiresAt: auth.refreshTokenExpiresAt,
+    accessTokenExpiresAtUtc: auth.accessTokenExpiresAtUtc,
+    refreshTokenExpiresAtUtc: auth.refreshTokenExpiresAtUtc,
     selectedCompany,
   };
 }
