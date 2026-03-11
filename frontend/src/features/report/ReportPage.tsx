@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTable } from '@/components/ui/AlertTable';
 import { Panel } from '@/components/ui/Panel';
+import { QueryErrorPanel } from '@/components/ui/QueryErrorPanel';
 import { RiskSummaryCard } from '@/components/ui/RiskSummaryCard';
 import { apiClient, ApiError } from '@/lib/api/client';
 import { useAuthSession } from '@/lib/auth/session';
@@ -85,9 +86,15 @@ export function ReportPage() {
       ) : null}
 
       {loadError ? (
-        <Panel title="Report retrieval failed" subtitle="We could not load the latest report payload.">
-          <div className="banner banner-error">{reportErrorDetail}</div>
-        </Panel>
+        <QueryErrorPanel
+          message={reportErrorDetail}
+          onRetry={() => {
+            void reportQuery.refetch();
+          }}
+          retrying={reportQuery.isFetching}
+          subtitle="We could not load the latest report payload."
+          title="Report retrieval failed"
+        />
       ) : null}
 
       {notFound ? (
@@ -114,7 +121,25 @@ export function ReportPage() {
               title="Consistency check"
               subtitle="TaxTrack verifies that report output matches the latest dashboard analysis."
             >
-              {consistencyIssues.length ? (
+              {latestRiskError ? (
+                <div className="stack">
+                  <div className="banner banner-error">
+                    Consistency check could not complete: {latestRiskError}
+                  </div>
+                  <div className="button-row">
+                    <button
+                      className="button button-secondary"
+                      disabled={latestRiskQuery.isFetching}
+                      onClick={() => {
+                        void latestRiskQuery.refetch();
+                      }}
+                      type="button"
+                    >
+                      {latestRiskQuery.isFetching ? 'Retrying...' : 'Retry consistency check'}
+                    </button>
+                  </div>
+                </div>
+              ) : consistencyIssues.length ? (
                 <div className="banner banner-warning">
                   <p className="banner-title">Consistency issues detected.</p>
                   <ul className="banner-list">

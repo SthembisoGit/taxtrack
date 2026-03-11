@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Panel } from '@/components/ui/Panel';
-import { apiClient } from '@/lib/api/client';
+import { QueryErrorPanel } from '@/components/ui/QueryErrorPanel';
+import { apiClient, ApiError } from '@/lib/api/client';
 import { useAuthSession } from '@/lib/auth/session';
 import type { AuditEventType, AuditLogEventResponse } from '@/lib/api/types';
 
@@ -108,6 +109,8 @@ export function AuditPage() {
 
   const companyEvents = useMemo(() => companyQuery.data ?? [], [companyQuery.data]);
   const securityEvents = useMemo(() => securityQuery.data ?? [], [securityQuery.data]);
+  const companyError = companyQuery.error instanceof ApiError ? companyQuery.error.problem.detail : '';
+  const securityError = securityQuery.error instanceof ApiError ? securityQuery.error.problem.detail : '';
 
   return (
     <div className="stack gap-lg">
@@ -131,6 +134,17 @@ export function AuditPage() {
             <div className="skeleton-block" />
             <div className="skeleton-block" />
           </div>
+        ) : companyError ? (
+          <QueryErrorPanel
+            embedded
+            message={companyError}
+            onRetry={() => {
+              void companyQuery.refetch();
+            }}
+            retrying={companyQuery.isFetching}
+            subtitle="We could not load workspace-scoped audit activity."
+            title="Workspace audit retrieval failed"
+          />
         ) : (
           <AuditTable
             emptyMessage="No workspace audit events have been recorded yet."
@@ -148,6 +162,17 @@ export function AuditPage() {
             <div className="skeleton-block" />
             <div className="skeleton-block" />
           </div>
+        ) : securityError ? (
+          <QueryErrorPanel
+            embedded
+            message={securityError}
+            onRetry={() => {
+              void securityQuery.refetch();
+            }}
+            retrying={securityQuery.isFetching}
+            subtitle="We could not load account-level security activity."
+            title="Security audit retrieval failed"
+          />
         ) : (
           <AuditTable
             emptyMessage="No personal security events have been recorded yet."

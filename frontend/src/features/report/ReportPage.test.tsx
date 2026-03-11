@@ -1,7 +1,8 @@
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ReportPage } from '@/features/report/ReportPage';
-import { apiClient } from '@/lib/api/client';
+import { apiClient, ApiError } from '@/lib/api/client';
 import { clearSession, saveSession, toAppSession } from '@/lib/auth/session';
 import type { AuthResponse, ReportResponse } from '@/lib/api/types';
 import { renderWithProviders } from '@/test/render';
@@ -119,4 +120,44 @@ describe('ReportPage', () => {
     ).toBeTruthy();
     expect(screen.getByText('Report alerts differ from the latest dashboard result.')).toBeTruthy();
   });
+
+  it('retries report retrieval after an initial failure', async () => {
+    const user = userEvent.setup();
+
+    saveSession(
+      toAppSession(authResponse, {
+        id: 'company-1',
+        name: 'Acme Holdings',
+        registrationNumber: '2018/123456/07',
+      }),
+    );
+
+    let reportAttempts = 0;
+    vi.spyOn(apiClient, 'getReport').mockImplementation(async () => {
+      reportAttempts += 1;
+      if (reportAttempts === 1) {
+        throw new ApiError({
+          type: 'about:blank',
+          title: 'Request failed',
+          status: 503,
+          detail: 'Report service is temporarily unavailable.',
+          instance: '/api/report/company-1',
+          validationIssues: [],
+          fieldErrors: {},
+        });
+      }
+
+      return reportResponse;
+    });
+    vi.spyOn(apiClient, 'getLatestRisk').mockResolvedValue(matchingLatestRisk);
+
+    renderWithProviders(<ReportPage />);
+
+    expect(await screen.findByText('Report service is temporarily unavailable.')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(await screen.findByText('Report summary')).toBeTruthy();
+    expect(reportAttempts).toBe(2);
+  }, 15000);
 });

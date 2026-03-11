@@ -1,7 +1,8 @@
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DashboardPage } from '@/features/risk/DashboardPage';
-import { apiClient } from '@/lib/api/client';
+import { apiClient, ApiError } from '@/lib/api/client';
 import { clearSession, saveSession, toAppSession } from '@/lib/auth/session';
 import type { AuthResponse, RiskResultResponse } from '@/lib/api/types';
 import { renderWithProviders } from '@/test/render';
@@ -65,4 +66,43 @@ describe('DashboardPage', () => {
     expect(screen.getByText('High').className).toContain('badge-danger');
     expect(screen.getByText('PAYE-REG-001')).toBeTruthy();
   });
+
+  it('retries dashboard retrieval after an initial failure', async () => {
+    const user = userEvent.setup();
+
+    saveSession(
+      toAppSession(authResponse, {
+        id: 'company-1',
+        name: 'Acme Holdings',
+        registrationNumber: '2018/123456/07',
+      }),
+    );
+
+    let riskAttempts = 0;
+    vi.spyOn(apiClient, 'getLatestRisk').mockImplementation(async () => {
+      riskAttempts += 1;
+      if (riskAttempts === 1) {
+        throw new ApiError({
+          type: 'about:blank',
+          title: 'Request failed',
+          status: 503,
+          detail: 'Risk service is temporarily unavailable.',
+          instance: '/api/risk/company-1',
+          validationIssues: [],
+          fieldErrors: {},
+        });
+      }
+
+      return riskResult;
+    });
+
+    renderWithProviders(<DashboardPage />);
+
+    expect(await screen.findByText('Risk service is temporarily unavailable.')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(await screen.findByText('74')).toBeTruthy();
+    expect(riskAttempts).toBe(2);
+  }, 15000);
 });

@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { InputField, SelectField, TextAreaField } from '@/components/ui/FormField';
 import { Panel } from '@/components/ui/Panel';
+import { QueryErrorPanel } from '@/components/ui/QueryErrorPanel';
 import { apiClient, ApiError } from '@/lib/api/client';
 import { useAuthSession } from '@/lib/auth/session';
 import type {
@@ -355,9 +356,15 @@ export function PrivacyPage() {
       ) : null}
 
       {listError ? (
-        <Panel title="Privacy request list failed" subtitle="We could not load your recent requests.">
-          <div className="banner banner-error">{listError}</div>
-        </Panel>
+        <QueryErrorPanel
+          message={listError}
+          onRetry={() => {
+            void requestsQuery.refetch();
+          }}
+          retrying={requestsQuery.isFetching}
+          subtitle="We could not load your recent requests."
+          title="Privacy request list failed"
+        />
       ) : null}
 
       {!requestsQuery.isLoading && !listError ? (
@@ -404,9 +411,19 @@ export function PrivacyPage() {
       ) : null}
 
       {activeRequestError ? (
-        <Panel title="Privacy request retrieval failed" subtitle="We could not load the selected request.">
-          <div className="banner banner-error">{activeRequestError}</div>
-        </Panel>
+        <QueryErrorPanel
+          message={activeRequestError}
+          onRetry={() => {
+            if (!activeRequestId) {
+              return;
+            }
+
+            void activeRequestQuery.refetch();
+          }}
+          retrying={activeRequestQuery.isFetching}
+          subtitle="We could not load the selected request."
+          title="Privacy request retrieval failed"
+        />
       ) : null}
 
       {activeRequest ? (

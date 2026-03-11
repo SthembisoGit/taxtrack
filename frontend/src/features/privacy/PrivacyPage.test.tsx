@@ -2,7 +2,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PrivacyPage } from '@/features/privacy/PrivacyPage';
-import { apiClient } from '@/lib/api/client';
+import { apiClient, ApiError } from '@/lib/api/client';
 import { clearSession, saveSession, toAppSession } from '@/lib/auth/session';
 import type { AuthResponse, DataSubjectRequestResponse } from '@/lib/api/types';
 import { renderWithProviders } from '@/test/render';
@@ -121,5 +121,44 @@ describe('PrivacyPage', () => {
     await waitFor(() => {
       expect(getSpy).toHaveBeenCalledWith(createdRequest.requestId);
     });
+  }, 15000);
+
+  it('retries recent request listing after an initial failure', async () => {
+    const user = userEvent.setup();
+
+    saveSession(
+      toAppSession(authResponse, {
+        id: 'company-1',
+        name: 'Acme Holdings',
+        registrationNumber: '2018/123456/07',
+      }),
+    );
+
+    let listAttempts = 0;
+    vi.spyOn(apiClient, 'listDataRequests').mockImplementation(async () => {
+      listAttempts += 1;
+      if (listAttempts === 1) {
+        throw new ApiError({
+          type: 'about:blank',
+          title: 'Request failed',
+          status: 503,
+          detail: 'Privacy request listing is temporarily unavailable.',
+          instance: '/api/privacy/data-requests',
+          validationIssues: [],
+          fieldErrors: {},
+        });
+      }
+
+      return [existingWorkspaceRequest, existingPersonalRequest];
+    });
+
+    renderWithProviders(<PrivacyPage />);
+
+    expect(await screen.findByText('Privacy request listing is temporarily unavailable.')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(await screen.findByText(existingWorkspaceRequest.requestId)).toBeTruthy();
+    expect(listAttempts).toBe(2);
   }, 15000);
 });

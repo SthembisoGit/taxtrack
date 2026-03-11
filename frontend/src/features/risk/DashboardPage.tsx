@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTable } from '@/components/ui/AlertTable';
 import { Panel } from '@/components/ui/Panel';
+import { QueryErrorPanel } from '@/components/ui/QueryErrorPanel';
 import { RiskSummaryCard } from '@/components/ui/RiskSummaryCard';
 import { apiClient, ApiError } from '@/lib/api/client';
 import { useAuthSession } from '@/lib/auth/session';
@@ -144,9 +145,15 @@ function DashboardWorkspace({ companyId, companyName, registrationNumber }: Dash
       ) : null}
 
       {loadError ? (
-        <Panel title="Dashboard retrieval failed" subtitle="We could not load the latest risk result.">
-          <div className="banner banner-error">{loadErrorDetail}</div>
-        </Panel>
+        <QueryErrorPanel
+          message={loadErrorDetail}
+          onRetry={() => {
+            void riskQuery.refetch();
+          }}
+          retrying={riskQuery.isFetching}
+          subtitle="We could not load the latest risk result."
+          title="Dashboard retrieval failed"
+        />
       ) : null}
 
       {notFound ? (
