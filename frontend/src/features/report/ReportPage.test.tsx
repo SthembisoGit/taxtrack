@@ -44,6 +44,11 @@ const reportResponse: ReportResponse = {
   ],
 };
 
+const matchingLatestRisk = {
+  ...reportResponse.riskSummary,
+  alerts: reportResponse.alerts,
+};
+
 describe('ReportPage', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -61,13 +66,57 @@ describe('ReportPage', () => {
     );
 
     vi.spyOn(apiClient, 'getReport').mockResolvedValue(reportResponse);
+    vi.spyOn(apiClient, 'getLatestRisk').mockResolvedValue(matchingLatestRisk);
 
     renderWithProviders(<ReportPage />);
 
     expect(await screen.findByText('Report summary')).toBeTruthy();
     expect(screen.getByText('61')).toBeTruthy();
+    expect(
+      screen.getByText('Report summary and alert output match the latest dashboard analysis result.'),
+    ).toBeTruthy();
     expect(screen.getByRole('link', { name: /json/i }).getAttribute('href')).toBe(
       'https://example.com/report.json',
     );
   }, 15000);
+
+  it('shows a warning when the report drifts from the latest dashboard result', async () => {
+    saveSession(
+      toAppSession(authResponse, {
+        id: 'company-1',
+        name: 'Acme Holdings',
+        registrationNumber: '2018/123456/07',
+      }),
+    );
+
+    vi.spyOn(apiClient, 'getReport').mockResolvedValue(reportResponse);
+    vi.spyOn(apiClient, 'getLatestRisk').mockResolvedValue({
+      ...matchingLatestRisk,
+      resultId: 'result-2',
+      riskScore: 74,
+      riskLevel: 'High',
+      alerts: [
+        {
+          ruleCode: 'VAT-HEU-004',
+          ruleClass: 'Heuristic',
+          type: 'VatRefundSpike',
+          description: 'VAT refund trend is unusually high for the reported turnover.',
+          severity: 'Warning',
+          recommendation: 'Validate refund claims and supporting invoices before submission.',
+          evidenceJson: '{}',
+        },
+      ],
+    });
+
+    renderWithProviders(<ReportPage />);
+
+    expect(await screen.findByText('Consistency issues detected.')).toBeTruthy();
+    expect(
+      screen.getByText('Report snapshot is not using the latest completed analysis result.'),
+    ).toBeTruthy();
+    expect(
+      screen.getByText('Report score or risk level differs from the latest dashboard result.'),
+    ).toBeTruthy();
+    expect(screen.getByText('Report alerts differ from the latest dashboard result.')).toBeTruthy();
+  });
 });

@@ -135,6 +135,7 @@ function UploadWorkspace({ companyId, companyName }: UploadWorkspaceProps) {
       <Panel title="Upload dataset" subtitle={`Working company: ${companyName}`}>
         <form
           className="stack"
+          noValidate
           onSubmit={(event) => {
             event.preventDefault();
             uploadMutation.mutate();

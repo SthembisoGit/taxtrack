@@ -94,7 +94,10 @@ function DashboardWorkspace({ companyId, companyName, registrationNumber }: Dash
     }
   }, [analysisStatusQuery.data?.status, companyId, queryClient]);
 
-  const notFound = riskQuery.error instanceof ApiError && riskQuery.error.problem.status === 404;
+  const riskError = riskQuery.error instanceof ApiError ? riskQuery.error : null;
+  const notFound = riskError?.problem.status === 404;
+  const loadError = riskError ? riskError.problem.status !== 404 : false;
+  const loadErrorDetail = riskError && loadError ? riskError.problem.detail : '';
 
   return (
     <div className="stack gap-lg">
@@ -137,6 +140,12 @@ function DashboardWorkspace({ companyId, companyName, registrationNumber }: Dash
             <div className="skeleton-block" />
             <div className="skeleton-block" />
           </div>
+        </Panel>
+      ) : null}
+
+      {loadError ? (
+        <Panel title="Dashboard retrieval failed" subtitle="We could not load the latest risk result.">
+          <div className="banner banner-error">{loadErrorDetail}</div>
         </Panel>
       ) : null}
 

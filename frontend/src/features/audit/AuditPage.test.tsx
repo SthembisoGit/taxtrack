@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AuditPage } from '@/features/audit/AuditPage';
 import { apiClient } from '@/lib/api/client';
@@ -62,14 +62,18 @@ describe('AuditPage', () => {
       }),
     );
 
-    vi.spyOn(apiClient, 'getAuditLog').mockImplementation(async (input) =>
+    const getAuditLogSpy = vi.spyOn(apiClient, 'getAuditLog').mockImplementation(async (input) =>
       input.companyId ? companyEvents : securityEvents,
     );
 
     renderWithProviders(<AuditPage />);
 
-    expect(await screen.findByText('Upload created')).toBeTruthy();
-    expect(await screen.findByText('Login succeeded')).toBeTruthy();
+    await waitFor(() => {
+      expect(getAuditLogSpy).toHaveBeenCalledTimes(2);
+    }, { timeout: 5000 });
+
+    expect(await screen.findByText('Upload created', {}, { timeout: 5000 })).toBeTruthy();
+    expect(await screen.findByText('Login succeeded', {}, { timeout: 5000 })).toBeTruthy();
     expect(screen.getByText('corr-upload')).toBeTruthy();
     expect(screen.getByText('corr-login')).toBeTruthy();
   }, 15000);

@@ -1,9 +1,11 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTable } from '@/components/ui/AlertTable';
 import { Panel } from '@/components/ui/Panel';
 import { RiskSummaryCard } from '@/components/ui/RiskSummaryCard';
 import { apiClient, ApiError } from '@/lib/api/client';
 import { useAuthSession } from '@/lib/auth/session';
+import { getReportConsistencyIssues } from '@/features/report/consistency';
 
 export function ReportPage() {
   const session = useAuthSession();
@@ -22,6 +24,42 @@ export function ReportPage() {
     retry: false,
   });
 
+  const latestRiskQuery = useQuery({
+    queryKey: ['risk-result', companyId],
+    enabled: Boolean(companyId),
+    queryFn: async () => {
+      if (!companyId) {
+        return null;
+      }
+
+      return apiClient.getLatestRisk(companyId);
+    },
+    retry: false,
+  });
+
+  const reportError = reportQuery.error instanceof ApiError ? reportQuery.error : null;
+  const latestRiskApiError = latestRiskQuery.error instanceof ApiError ? latestRiskQuery.error : null;
+  const notFound = reportError?.problem.status === 404;
+  const loadError = reportError ? reportError.problem.status !== 404 : false;
+  const reportErrorDetail = reportError && loadError ? reportError.problem.detail : '';
+  const latestRiskMissing = latestRiskApiError?.problem.status === 404;
+  const latestRiskError =
+    latestRiskApiError && latestRiskApiError.problem.status !== 404
+      ? latestRiskApiError.problem.detail
+      : '';
+
+  const consistencyIssues = useMemo(() => {
+    if (!reportQuery.data) {
+      return [];
+    }
+
+    if (latestRiskError) {
+      return [`Consistency check could not complete: ${latestRiskError}`];
+    }
+
+    return getReportConsistencyIssues(reportQuery.data, latestRiskMissing ? null : latestRiskQuery.data ?? null);
+  }, [latestRiskError, latestRiskMissing, latestRiskQuery.data, reportQuery.data]);
+
   if (!companyId) {
     return (
       <Panel title="No company selected" subtitle="Set the active company before requesting reports.">
@@ -29,8 +67,6 @@ export function ReportPage() {
       </Panel>
     );
   }
-
-  const notFound = reportQuery.error instanceof ApiError && reportQuery.error.problem.status === 404;
 
   return (
     <div className="stack gap-lg">
@@ -48,6 +84,12 @@ export function ReportPage() {
         </Panel>
       ) : null}
 
+      {loadError ? (
+        <Panel title="Report retrieval failed" subtitle="We could not load the latest report payload.">
+          <div className="banner banner-error">{reportErrorDetail}</div>
+        </Panel>
+      ) : null}
+
       {notFound ? (
         <Panel title="No report yet" subtitle="Run analysis before opening report downloads.">
           <p className="empty-copy">The report view mirrors the latest completed dashboard analysis.</p>
@@ -56,26 +98,63 @@ export function ReportPage() {
 
       {reportQuery.data ? (
         <>
+          {latestRiskQuery.isLoading ? (
+            <Panel
+              title="Checking report consistency"
+              subtitle="Comparing this report snapshot with the latest dashboard result."
+            >
+              <div className="skeleton-grid">
+                <div className="skeleton-block" />
+              </div>
+            </Panel>
+          ) : null}
+
+          {!latestRiskQuery.isLoading ? (
+            <Panel
+              title="Consistency check"
+              subtitle="TaxTrack verifies that report output matches the latest dashboard analysis."
+            >
+              {consistencyIssues.length ? (
+                <div className="banner banner-warning">
+                  <p className="banner-title">Consistency issues detected.</p>
+                  <ul className="banner-list">
+                    {consistencyIssues.map((issue) => (
+                      <li key={issue}>{issue}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <div className="banner banner-success">
+                  Report summary and alert output match the latest dashboard analysis result.
+                </div>
+              )}
+            </Panel>
+          ) : null}
+
           <RiskSummaryCard summary={reportQuery.data.riskSummary} title="Report summary" />
 
           <Panel
             title="Download options"
             subtitle={`Generated ${new Date(reportQuery.data.generatedAtUtc).toLocaleString()}`}
           >
-            <div className="download-list">
-              {reportQuery.data.downloadOptions.map((download) => (
-                <a
-                  key={download.format}
-                  className="download-card"
-                  href={download.url}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  <strong>{download.format.toUpperCase()}</strong>
-                  <span>Expires {new Date(download.expiresAtUtc).toLocaleString()}</span>
-                </a>
-              ))}
-            </div>
+            {reportQuery.data.downloadOptions.length ? (
+              <div className="download-list">
+                {reportQuery.data.downloadOptions.map((download) => (
+                  <a
+                    key={download.format}
+                    className="download-card"
+                    href={download.url}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    <strong>{download.format.toUpperCase()}</strong>
+                    <span>Expires {new Date(download.expiresAtUtc).toLocaleString()}</span>
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <p className="empty-copy">No download links are available for this report yet.</p>
+            )}
           </Panel>
 
           <Panel

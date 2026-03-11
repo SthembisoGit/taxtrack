@@ -29,7 +29,7 @@ export function AppShell() {
   const companies = companiesQuery.data;
 
   useEffect(() => {
-    if (!session?.selectedCompany || !companiesQuery.isSuccess) {
+    if (!session?.selectedCompany || !companiesQuery.isSuccess || companiesQuery.isFetching) {
       return;
     }
 
@@ -42,7 +42,14 @@ export function AppShell() {
         navigate('/company/setup', { replace: true });
       }
     }
-  }, [companies, companiesQuery.isSuccess, location.pathname, navigate, session?.selectedCompany]);
+  }, [
+    companies,
+    companiesQuery.isFetching,
+    companiesQuery.isSuccess,
+    location.pathname,
+    navigate,
+    session?.selectedCompany,
+  ]);
 
   function handleWorkspaceChange(companyId: string) {
     const company = (companies ?? emptyCompanies).find((item) => item.id === companyId);

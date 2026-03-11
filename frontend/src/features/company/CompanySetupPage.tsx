@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Panel } from '@/components/ui/Panel';
 import { InputField, SelectField } from '@/components/ui/FormField';
 import { apiClient, ApiError } from '@/lib/api/client';
+import type { CompanyResponse } from '@/lib/api/types';
 import { rememberCompany, useAuthSession } from '@/lib/auth/session';
 import { companiesQueryKey, useCompaniesQuery } from '@/features/company/useCompaniesQuery';
 
@@ -57,6 +58,10 @@ export function CompanySetupPage() {
         taxReference,
       });
 
+      queryClient.setQueryData<CompanyResponse[]>(companiesQueryKey, (current) => {
+        const existing = current ?? [];
+        return [...existing.filter((item) => item.id !== company.id), company];
+      });
       void queryClient.invalidateQueries({ queryKey: companiesQueryKey });
       rememberCompany(company);
       navigate('/upload');

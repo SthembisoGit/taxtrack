@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 import { ProtectedRoute, PublicOnlyRoute, RootRedirect } from '@/app/guards';
 import { AuthPage } from '@/features/auth/AuthPage';
 import { AuditPage } from '@/features/audit/AuditPage';
@@ -7,7 +7,7 @@ import { UploadPage } from '@/features/upload/UploadPage';
 import { DashboardPage } from '@/features/risk/DashboardPage';
 import { ReportPage } from '@/features/report/ReportPage';
 
-export const router = createBrowserRouter([
+export const appRoutes: RouteObject[] = [
   {
     path: '/',
     element: <RootRedirect />,
@@ -46,4 +46,10 @@ export const router = createBrowserRouter([
       },
     ],
   },
-]);
+];
+
+export function createAppRouter() {
+  return createBrowserRouter(appRoutes);
+}
+
+export const router = createAppRouter();
