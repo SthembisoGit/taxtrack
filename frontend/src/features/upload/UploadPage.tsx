@@ -16,6 +16,24 @@ const datasets: { label: string; value: DatasetType }[] = [
 export function UploadPage() {
   const session = useAuthSession();
   const companyId = session?.selectedCompany?.id;
+
+  if (!companyId) {
+    return (
+      <Panel title="No company selected" subtitle="Set up a company profile before uploading datasets.">
+        <p className="empty-copy">TaxTrack needs a company context to validate and score uploaded data.</p>
+      </Panel>
+    );
+  }
+
+  return <UploadWorkspace key={companyId} companyId={companyId} companyName={session.selectedCompany?.name ?? ''} />;
+}
+
+interface UploadWorkspaceProps {
+  companyId: string;
+  companyName: string;
+}
+
+function UploadWorkspace({ companyId, companyName }: UploadWorkspaceProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [datasetType, setDatasetType] = useState<DatasetType>('transactions');
   const [file, setFile] = useState<File | null>(null);
@@ -107,14 +125,6 @@ export function UploadPage() {
     },
   });
 
-  if (!companyId) {
-    return (
-      <Panel title="No company selected" subtitle="Set up a company profile before uploading datasets.">
-        <p className="empty-copy">TaxTrack needs a company context to validate and score uploaded data.</p>
-      </Panel>
-    );
-  }
-
   return (
     <div className="stack gap-lg">
       <div className="page-heading">
@@ -122,7 +132,7 @@ export function UploadPage() {
         <h1>Upload the datasets that power the next risk analysis.</h1>
       </div>
 
-      <Panel title="Upload dataset" subtitle={`Working company: ${session.selectedCompany?.name}`}>
+      <Panel title="Upload dataset" subtitle={`Working company: ${companyName}`}>
         <form
           className="stack"
           onSubmit={(event) => {

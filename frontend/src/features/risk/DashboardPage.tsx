@@ -8,20 +8,41 @@ import { useAuthSession } from '@/lib/auth/session';
 import { generateIdempotencyKey } from '@/lib/utils/idempotency';
 
 export function DashboardPage() {
-  const queryClient = useQueryClient();
   const session = useAuthSession();
   const companyId = session?.selectedCompany?.id;
+
+  if (!companyId) {
+    return (
+      <Panel title="No company selected" subtitle="Create a company profile before running analysis.">
+        <p className="empty-copy">Analysis is always scoped to a single company in this MVP slice.</p>
+      </Panel>
+    );
+  }
+
+  return (
+    <DashboardWorkspace
+      key={companyId}
+      companyId={companyId}
+      companyName={session.selectedCompany?.name ?? ''}
+      registrationNumber={session.selectedCompany?.registrationNumber ?? ''}
+    />
+  );
+}
+
+interface DashboardWorkspaceProps {
+  companyId: string;
+  companyName: string;
+  registrationNumber: string;
+}
+
+function DashboardWorkspace({ companyId, companyName, registrationNumber }: DashboardWorkspaceProps) {
+  const queryClient = useQueryClient();
   const [analysisId, setAnalysisId] = useState('');
   const [error, setError] = useState('');
 
   const riskQuery = useQuery({
     queryKey: ['risk-result', companyId],
-    enabled: Boolean(companyId),
     queryFn: async () => {
-      if (!companyId) {
-        return null;
-      }
-
       return apiClient.getLatestRisk(companyId);
     },
     retry: false,
@@ -73,14 +94,6 @@ export function DashboardPage() {
     }
   }, [analysisStatusQuery.data?.status, companyId, queryClient]);
 
-  if (!companyId) {
-    return (
-      <Panel title="No company selected" subtitle="Create a company profile before running analysis.">
-        <p className="empty-copy">Analysis is always scoped to a single company in this MVP slice.</p>
-      </Panel>
-    );
-  }
-
   const notFound = riskQuery.error instanceof ApiError && riskQuery.error.problem.status === 404;
 
   return (
@@ -88,7 +101,7 @@ export function DashboardPage() {
       <div className="page-heading page-heading-row">
         <div>
           <p className="eyebrow">Risk dashboard</p>
-          <h1>Review the latest tax posture for {session.selectedCompany?.name}.</h1>
+          <h1>Review the latest tax posture for {companyName}.</h1>
         </div>
         <button
           className="button button-primary"
@@ -147,8 +160,8 @@ export function DashboardPage() {
               <p className="metric-caption">Latest completed analysis</p>
             </Panel>
             <Panel title="Company">
-              <p className="metric-callout">{session.selectedCompany?.registrationNumber}</p>
-              <p className="metric-caption">{session.selectedCompany?.name}</p>
+              <p className="metric-callout">{registrationNumber}</p>
+              <p className="metric-caption">{companyName}</p>
             </Panel>
           </div>
 

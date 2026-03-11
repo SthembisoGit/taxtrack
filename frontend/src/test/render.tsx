@@ -3,7 +3,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
-export function renderWithProviders(ui: ReactElement) {
+interface RenderOptions {
+  route?: string;
+}
+
+export function renderWithProviders(ui: ReactElement, options: RenderOptions = {}) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -17,7 +21,7 @@ export function renderWithProviders(ui: ReactElement) {
 
   function Wrapper({ children }: PropsWithChildren) {
     return (
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[options.route ?? '/']}>
         <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
       </MemoryRouter>
     );

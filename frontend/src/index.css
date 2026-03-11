@@ -69,9 +69,39 @@ textarea {
 }
 
 .topbar-meta {
-  display: flex;
+  display: grid;
+  grid-auto-flow: column;
   align-items: center;
   gap: 1rem;
+}
+
+.topbar-account,
+.topbar-workspace {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.topbar-select {
+  min-width: 19rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 0.75rem 1rem;
+}
+
+.topbar-select:disabled {
+  opacity: 0.7;
+}
+
+.topbar-select option {
+  color: var(--color-text-primary);
 }
 
 .meta-label,
@@ -574,6 +604,21 @@ textarea {
 
   .topbar {
     padding: 1.2rem;
+  }
+
+  .topbar-meta {
+    grid-auto-flow: row;
+    justify-items: stretch;
+  }
+
+  .topbar-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .topbar-select {
+    min-width: 0;
+    width: 100%;
   }
 
   .page-shell,

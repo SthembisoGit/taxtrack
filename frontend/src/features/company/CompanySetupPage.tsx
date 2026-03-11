@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Panel } from '@/components/ui/Panel';
 import { InputField, SelectField } from '@/components/ui/FormField';
 import { apiClient, ApiError } from '@/lib/api/client';
 import { rememberCompany, useAuthSession } from '@/lib/auth/session';
+import { companiesQueryKey, useCompaniesQuery } from '@/features/company/useCompaniesQuery';
 
 const industries = [
   'Manufacturing',
@@ -18,6 +19,7 @@ const industries = [
 ];
 
 export function CompanySetupPage() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const session = useAuthSession();
   const [name, setName] = useState(session?.selectedCompany?.name ?? '');
@@ -29,12 +31,7 @@ export function CompanySetupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const companiesQuery = useQuery({
-    queryKey: ['companies'],
-    queryFn: () => apiClient.listCompanies(),
-    retry: false,
-  });
-
+  const companiesQuery = useCompaniesQuery();
   const companies = companiesQuery.data ?? [];
 
   function handleSelectCompany(companyId: string) {
@@ -60,6 +57,7 @@ export function CompanySetupPage() {
         taxReference,
       });
 
+      void queryClient.invalidateQueries({ queryKey: companiesQueryKey });
       rememberCompany(company);
       navigate('/upload');
     } catch (caught) {

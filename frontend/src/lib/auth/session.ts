@@ -127,6 +127,12 @@ export function rememberCompany(company: CompanyResponse) {
   });
 }
 
+export function clearSelectedCompany() {
+  mergeSession({
+    selectedCompany: undefined,
+  });
+}
+
 export function getDefaultAuthedPath(session: AppSession) {
   return session.selectedCompany ? '/upload' : '/company/setup';
 }
