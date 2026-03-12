@@ -74,58 +74,60 @@ export function AppShell() {
   return (
     <div className="app-frame">
       <header className="topbar">
-        <div>
-          <p className="eyebrow">TaxTrack</p>
-          <h1 className="topbar-title">Tax Risk Intelligence</h1>
-        </div>
-
-        <nav className="nav-links" aria-label="Primary navigation">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => (isActive ? 'nav-link is-active' : 'nav-link')}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="topbar-meta">
-          <div className="topbar-account">
-            <p className="meta-label">{session?.email}</p>
-            <p className="meta-value">{session?.selectedCompany?.name ?? 'No company selected'}</p>
+        <div className="topbar-inner">
+          <div className="topbar-brand">
+            <p className="eyebrow">TaxTrack</p>
+            <h1 className="topbar-title">Tax Risk Intelligence</h1>
           </div>
-          <label className="topbar-workspace">
-            <span className="meta-label">Workspace</span>
-            <select
-              className="topbar-select"
-              disabled={!(companies ?? emptyCompanies).length || companiesQuery.isLoading}
-              onChange={(event) => handleWorkspaceChange(event.target.value)}
-              value={session?.selectedCompany?.id ?? ''}
-            >
-              <option value="">
-                {companiesQuery.isLoading
-                  ? 'Loading workspaces...'
-                  : (companies ?? emptyCompanies).length
-                    ? 'Select a workspace'
-                    : 'No workspaces yet'}
-              </option>
-              {(companies ?? emptyCompanies).map((company) => (
-                <option key={company.id} value={company.id}>
-                  {company.name} ({company.registrationNumber})
+
+          <div className="topbar-controls">
+            <div className="topbar-account">
+              <p className="meta-label">{session?.email}</p>
+              <p className="meta-value">{session?.selectedCompany?.name ?? 'No company selected'}</p>
+            </div>
+            <label className="topbar-workspace">
+              <span className="meta-label">Workspace</span>
+              <select
+                className="topbar-select"
+                disabled={!(companies ?? emptyCompanies).length || companiesQuery.isLoading}
+                onChange={(event) => handleWorkspaceChange(event.target.value)}
+                value={session?.selectedCompany?.id ?? ''}
+              >
+                <option value="">
+                  {companiesQuery.isLoading
+                    ? 'Loading workspaces...'
+                    : (companies ?? emptyCompanies).length
+                      ? 'Select a workspace'
+                      : 'No workspaces yet'}
                 </option>
-              ))}
-            </select>
-          </label>
-          <div className="topbar-actions">
-            <NavLink className="button button-secondary" to="/company/setup">
-              Manage workspaces
-            </NavLink>
-            <button className="button button-secondary" onClick={() => clearSession()} type="button">
-              Sign out
-            </button>
+                {(companies ?? emptyCompanies).map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name} ({company.registrationNumber})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="topbar-actions">
+              <NavLink className="button button-secondary" to="/company/setup">
+                Manage workspaces
+              </NavLink>
+              <button className="button button-secondary" onClick={() => clearSession()} type="button">
+                Sign out
+              </button>
+            </div>
           </div>
+
+          <nav className="nav-links" aria-label="Primary navigation">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) => (isActive ? 'nav-link is-active' : 'nav-link')}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
         </div>
       </header>
 
