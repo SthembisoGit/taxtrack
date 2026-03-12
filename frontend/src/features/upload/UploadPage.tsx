@@ -2,7 +2,7 @@ import { useRef, useState, type ChangeEvent, type DragEvent, type KeyboardEvent 
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Panel } from '@/components/ui/Panel';
 import { SelectField, TextAreaField } from '@/components/ui/FormField';
-import { apiClient, ApiError } from '@/lib/api/client';
+import { apiClient, ApiError, SessionExpiredError } from '@/lib/api/client';
 import { useAuthSession } from '@/lib/auth/session';
 import { generateIdempotencyKey } from '@/lib/utils/idempotency';
 import type { DatasetType, ValidationIssue } from '@/lib/api/types';
@@ -12,6 +12,26 @@ const datasets: { label: string; value: DatasetType }[] = [
   { label: 'Payroll', value: 'payroll' },
   { label: 'VAT submissions', value: 'vat_submissions' },
 ];
+
+function getUploadErrorMessage(caught: unknown) {
+  if (caught instanceof ApiError) {
+    return caught.problem.detail;
+  }
+
+  if (caught instanceof SessionExpiredError) {
+    return caught.message;
+  }
+
+  if (caught instanceof TypeError) {
+    return 'Could not reach the TaxTrack API. Check that the backend is running and the frontend API URL is correct.';
+  }
+
+  if (caught instanceof Error && caught.message) {
+    return caught.message;
+  }
+
+  return 'We could not process that upload.';
+}
 
 export function UploadPage() {
   const session = useAuthSession();
@@ -107,7 +127,8 @@ function UploadWorkspace({ companyId, companyName }: UploadWorkspaceProps) {
         return;
       }
 
-      setValidationMessage('We could not process that upload.');
+      setValidationIssues([]);
+      setValidationMessage(getUploadErrorMessage(caught));
     },
   });
 

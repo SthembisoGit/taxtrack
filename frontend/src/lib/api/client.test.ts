@@ -55,6 +55,15 @@ function jsonResponse(payload: unknown, status = 200) {
   });
 }
 
+function problemJsonResponse(payload: unknown, status: number) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: {
+      'Content-Type': 'application/problem+json',
+    },
+  });
+}
+
 describe('apiClient refresh handling', () => {
   beforeEach(() => {
     window.sessionStorage.clear();
@@ -96,5 +105,43 @@ describe('apiClient refresh handling', () => {
 
     await expect(apiClient.getLatestRisk('company-1')).rejects.toBeInstanceOf(SessionExpiredError);
     expect(getSession()).toBeNull();
+  });
+
+  it('parses application/problem+json error payloads', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      problemJsonResponse(
+        {
+          type: 'https://httpstatuses.com/422',
+          title: 'Validation Failed',
+          status: 422,
+          detail: 'CSV validation failed.',
+          instance: '/api/financial/upload',
+          errors: [
+            {
+              rowNumber: 4,
+              columnName: 'company_registration_number',
+              errorCode: 'DC009',
+              message: 'Unknown or mismatched company registration number.',
+            },
+          ],
+        },
+        422,
+      ),
+    );
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(apiClient.getLatestRisk('company-1')).rejects.toMatchObject({
+      problem: expect.objectContaining({
+        status: 422,
+        detail: 'CSV validation failed.',
+        validationIssues: [
+          expect.objectContaining({
+            columnName: 'company_registration_number',
+            errorCode: 'DC009',
+          }),
+        ],
+      }),
+    });
   });
 });

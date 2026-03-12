@@ -47,8 +47,16 @@ function buildUrl(path: string) {
   return `${API_BASE_URL}${path}`;
 }
 
+function isJsonContentType(contentType: string | null) {
+  if (!contentType) {
+    return false;
+  }
+
+  return contentType.includes('application/json') || contentType.includes('+json');
+}
+
 async function parseResponse<T>(response: Response) {
-  const hasJson = response.headers.get('content-type')?.includes('application/json');
+  const hasJson = isJsonContentType(response.headers.get('content-type'));
   if (!hasJson) {
     return null as T;
   }

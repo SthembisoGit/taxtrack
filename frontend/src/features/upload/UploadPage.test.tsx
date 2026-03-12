@@ -103,4 +103,42 @@ describe('UploadPage', () => {
     expect(screen.getByText('supplier_vat_number')).toBeTruthy();
     expect(screen.getByText('REQUIRED')).toBeTruthy();
   }, 15000);
+
+  it('shows an actionable message when the API is unreachable', async () => {
+    const user = userEvent.setup();
+
+    saveSession(
+      toAppSession(authResponse, {
+        id: 'company-1',
+        name: 'Acme Holdings',
+        registrationNumber: '2018/123456/07',
+      }),
+    );
+
+    vi.spyOn(apiClient, 'uploadFinancial').mockRejectedValue(new TypeError('Failed to fetch'));
+
+    renderWithProviders(<UploadPage />);
+
+    const file = new File(['header\nvalue'], 'transactions.csv', { type: 'text/csv' });
+    const fileInput = document.querySelector('input[type="file"]');
+
+    if (!(fileInput instanceof HTMLInputElement)) {
+      throw new Error('Expected file input to be present.');
+    }
+
+    await user.upload(fileInput, file);
+
+    const form = document.querySelector('form');
+    if (!(form instanceof HTMLFormElement)) {
+      throw new Error('Expected upload form to be present.');
+    }
+
+    fireEvent.submit(form);
+
+    expect(
+      await screen.findByText(
+        'Could not reach the TaxTrack API. Check that the backend is running and the frontend API URL is correct.',
+      ),
+    ).toBeTruthy();
+  }, 15000);
 });
