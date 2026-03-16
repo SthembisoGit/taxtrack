@@ -16,7 +16,8 @@ namespace TaxTrack.Infrastructure.Services;
 public sealed class UploadService(
     TaxTrackDbContext dbContext,
     ICompanyAccessService companyAccessService,
-    IAuditService auditService) : IUploadService
+    IAuditService auditService,
+    ILogger<UploadService> logger) : IUploadService
 {
     public async Task<UploadAcceptedResponse> UploadAsync(
         UploadCommand command,
@@ -66,18 +67,14 @@ public sealed class UploadService(
             DatasetType = command.DatasetType,
             Status = UploadJobStatus.Validating
         };
-        dbContext.UploadJobs.Add(uploadJob);
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        dbContext.IdempotencyRecords.Add(new IdempotencyRecord
+        var idempotencyRecord = new IdempotencyRecord
         {
             UserId = command.UserId,
             Endpoint = "POST:/api/financial/upload",
             IdempotencyKey = command.IdempotencyKey,
             RequestHash = payloadHash,
             ResourceId = uploadJob.Id
-        });
-        await dbContext.SaveChangesAsync(cancellationToken);
+        };
 
         var issues = new List<ValidationIssue>();
         ParseSummary summary;
@@ -167,7 +164,40 @@ public sealed class UploadService(
         {
             uploadJob.Status = UploadJobStatus.Failed;
             uploadJob.ValidationErrorsJson = JsonSerializer.Serialize(issues.Take(1000).ToArray());
-            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        else
+        {
+            if (transactionRecords is not null)
+            {
+                dbContext.FinancialTransactions.AddRange(transactionRecords);
+            }
+
+            if (payrollRecords is not null)
+            {
+                dbContext.PayrollRecords.AddRange(payrollRecords);
+            }
+
+            if (vatRecords is not null)
+            {
+                dbContext.VatSubmissionRecords.AddRange(vatRecords);
+            }
+
+            uploadJob.Status = UploadJobStatus.Completed;
+        }
+
+        dbContext.UploadJobs.Add(uploadJob);
+        dbContext.IdempotencyRecords.Add(idempotencyRecord);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        if (issues.Count > 0)
+        {
+            logger.LogWarning(
+                "Upload validation failed {UploadId} {CompanyId} {DatasetType} {IssueCount} {CorrelationId}",
+                uploadJob.Id,
+                command.CompanyId,
+                command.DatasetType,
+                issues.Count,
+                correlationId);
 
             await auditService.LogAsync(
                 command.UserId,
@@ -182,23 +212,13 @@ public sealed class UploadService(
             throw new TaxTrack.Application.Exceptions.ValidationException("CSV validation failed.", issues.Take(1000).ToArray());
         }
 
-        if (transactionRecords is not null)
-        {
-            dbContext.FinancialTransactions.AddRange(transactionRecords);
-        }
-
-        if (payrollRecords is not null)
-        {
-            dbContext.PayrollRecords.AddRange(payrollRecords);
-        }
-
-        if (vatRecords is not null)
-        {
-            dbContext.VatSubmissionRecords.AddRange(vatRecords);
-        }
-
-        uploadJob.Status = UploadJobStatus.Completed;
-        await dbContext.SaveChangesAsync(cancellationToken);
+        logger.LogInformation(
+            "Upload completed {UploadId} {CompanyId} {DatasetType} {AcceptedRows} {CorrelationId}",
+            uploadJob.Id,
+            command.CompanyId,
+            command.DatasetType,
+            uploadJob.AcceptedRows,
+            correlationId);
 
         await auditService.LogAsync(
             command.UserId,

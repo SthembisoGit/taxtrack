@@ -60,7 +60,22 @@ Primary settings:
 - `TaxPolicy__Version`
 - `TaxPolicy__EffectiveDate`
 
+## Migrations
+
+Create or update the database schema using EF Core migrations.
+
+Local/dev:
+
+```bash
+dotnet ef migrations add InitialCreate --project src/TaxTrack.Infrastructure --startup-project src/TaxTrack.Api --output-dir Migrations
+dotnet ef database update --project src/TaxTrack.Infrastructure --startup-project src/TaxTrack.Api
+```
+
+Production:
+
+1. Apply migrations in your release pipeline or a controlled maintenance step.
+2. The API will refuse to start if pending migrations are detected in production.
+
 ## Notes
 
-- The app currently uses `Database.EnsureCreatedAsync()` for bootstrap simplicity.
-- Production migration workflow still needs to be formalized in a later hardening step.
+- The API uses EF Core migrations for relational databases; in-memory mode is used only when no connection string is configured.

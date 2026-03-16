@@ -16,7 +16,8 @@ public sealed class RiskService(
     TaxTrackDbContext dbContext,
     ICompanyAccessService companyAccessService,
     IAuditService auditService,
-    IOptions<TaxPolicyOptions> taxPolicyOptions) : IRiskService
+    IOptions<TaxPolicyOptions> taxPolicyOptions,
+    ILogger<RiskService> logger) : IRiskService
 {
     private readonly TaxPolicyOptions _policy = taxPolicyOptions.Value;
 
@@ -78,6 +79,12 @@ public sealed class RiskService(
         });
         await dbContext.SaveChangesAsync(cancellationToken);
 
+        logger.LogInformation(
+            "Risk analysis started {JobId} {CompanyId} {CorrelationId}",
+            job.Id,
+            command.CompanyId,
+            correlationId);
+
         var start = command.PeriodStart;
         var end = command.PeriodEnd;
 
@@ -120,6 +127,16 @@ public sealed class RiskService(
         var evidenceCompleteness = await ComputeEvidenceCompletenessAsync(command.CompanyId, cancellationToken);
         var insufficientEvidence = evidenceCompleteness < 80;
 
+        if (insufficientEvidence)
+        {
+            logger.LogWarning(
+                "Risk analysis evidence incomplete {JobId} {CompanyId} {EvidenceCompleteness} {CorrelationId}",
+                job.Id,
+                command.CompanyId,
+                evidenceCompleteness,
+                correlationId);
+        }
+
         var result = new TaxRiskResult
         {
             CompanyId = command.CompanyId,
@@ -155,6 +172,13 @@ public sealed class RiskService(
         job.ResultId = result.Id;
         job.UpdatedAtUtc = DateTime.UtcNow;
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "Risk analysis completed {JobId} {CompanyId} {RiskScore} {CorrelationId}",
+            job.Id,
+            command.CompanyId,
+            riskScore,
+            correlationId);
 
         await auditService.LogAsync(
             command.UserId,

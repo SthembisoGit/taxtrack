@@ -23,6 +23,18 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+var defaultDevOrigins = new[]
+{
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://localhost:5173"
+};
+
+if (builder.Environment.IsDevelopment() && corsOrigins.Length == 0)
+{
+    corsOrigins = defaultDevOrigins;
+}
+
 if (!builder.Environment.IsDevelopment() && corsOrigins.Length == 0)
 {
     throw new InvalidOperationException("Cors:AllowedOrigins must be configured for non-development environments.");
@@ -32,20 +44,9 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("frontend", policy =>
     {
-        if (corsOrigins.Length > 0)
-        {
-            policy.WithOrigins(corsOrigins)
-                .AllowAnyHeader()
-                .AllowAnyMethod();
-            return;
-        }
-
-        if (builder.Environment.IsDevelopment())
-        {
-            policy.AllowAnyOrigin()
-                .AllowAnyHeader()
-                .AllowAnyMethod();
-        }
+        policy.WithOrigins(corsOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod();
     });
 });
 
@@ -94,12 +95,32 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+// Database initialization: Apply migrations or validate schema
+// Production: Fail fast if migrations are pending (prevent silent data inconsistencies)
+// Development: Auto-apply migrations for smooth iteration
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<TaxTrackDbContext>();
-    await db.Database.EnsureCreatedAsync();
+    if (db.Database.IsRelational())
+    {
+        if (app.Environment.IsProduction())
+        {
+            // PRODUCTION: Validate that migrations have been applied via explicit release process
+            var pending = await db.Database.GetPendingMigrationsAsync();
+            if (pending.Any())
+            {
+                throw new InvalidOperationException("Pending database migrations detected. Apply migrations before starting the API.");
+            }
+        }
+        else
+        {
+            // DEVELOPMENT: Auto-apply pending migrations to enable rapid iteration
+            await db.Database.MigrateAsync();
+        }
+    }
 }
 
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ApiExceptionMiddleware>();
 
 if (!app.Environment.IsDevelopment())

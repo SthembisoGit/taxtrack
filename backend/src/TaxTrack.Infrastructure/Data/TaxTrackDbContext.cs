@@ -38,6 +38,21 @@ public sealed class TaxTrackDbContext(DbContextOptions<TaxTrackDbContext> option
             entity.HasIndex(x => new { x.CompanyId, x.UserId }).IsUnique();
         });
 
+        modelBuilder.Entity<FinancialTransaction>(entity =>
+        {
+            entity.HasIndex(x => new { x.CompanyId, x.SourceRecordId }).IsUnique();
+        });
+
+        modelBuilder.Entity<PayrollRecord>(entity =>
+        {
+            entity.HasIndex(x => new { x.CompanyId, x.SourceRecordId }).IsUnique();
+        });
+
+        modelBuilder.Entity<VatSubmissionRecord>(entity =>
+        {
+            entity.HasIndex(x => new { x.CompanyId, x.SourceRecordId }).IsUnique();
+        });
+
         modelBuilder.Entity<IdempotencyRecord>(entity =>
         {
             entity.HasIndex(x => new { x.UserId, x.Endpoint, x.IdempotencyKey }).IsUnique();
