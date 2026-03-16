@@ -58,6 +58,10 @@ Feature coding starts only after all seven gates in `docs/12-readiness-checklist
 - Backend example: `backend/.env.example`
 - Frontend example: `frontend/.env.example`
 
+## CORS Configuration
+
+Set `Cors__AllowedOrigins__0` (and additional entries) in `backend/.env` for non-development environments. The API will refuse to start without configured origins when `ASPNETCORE_ENVIRONMENT` is not `Development`.
+
 ## Operational Checks
 
 - Liveness: `GET /health/live`

@@ -22,6 +22,33 @@ builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddInfrastructure(builder.Configuration);
 
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+if (!builder.Environment.IsDevelopment() && corsOrigins.Length == 0)
+{
+    throw new InvalidOperationException("Cors:AllowedOrigins must be configured for non-development environments.");
+}
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("frontend", policy =>
+    {
+        if (corsOrigins.Length > 0)
+        {
+            policy.WithOrigins(corsOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+            return;
+        }
+
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
+    });
+});
+
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 if (jwtOptions.SigningKey.Length < 32)
 {
@@ -86,6 +113,7 @@ if (!app.Environment.IsEnvironment("Testing"))
 }
 
 app.UseRateLimiter();
+app.UseCors("frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
