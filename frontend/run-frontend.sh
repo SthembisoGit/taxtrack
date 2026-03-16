@@ -6,6 +6,8 @@ if [[ -f "frontend/.env" ]]; then
     [[ -z "$line" || "$line" =~ ^# ]] && continue
     key="${line%%=*}"
     value="${line#*=}"
+    key="$(echo "$key" | xargs)"
+    value="$(echo "$value" | xargs)"
     value="${value%\"}"
     value="${value#\"}"
     export "$key=$value"
@@ -13,5 +15,7 @@ if [[ -f "frontend/.env" ]]; then
 fi
 
 cd frontend
-npm install
+if [[ ! -d "node_modules" ]]; then
+  npm install
+fi
 npm run dev
