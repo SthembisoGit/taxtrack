@@ -18,6 +18,7 @@ This document defines the canonical CSV contract for MVP uploads. Validation mus
 10. Maximum rows for MVP: 100,000 rows per file.
 11. Evidence fields required for statutory reconciliation checks must be present and valid.
 12. Contract validation must emit `evidenceCompleteness` metadata for uploaded datasets.
+13. `source_record_id` must be unique within a file and across uploads for the same company and dataset type.
 
 ## Dataset Types
 
@@ -60,7 +61,7 @@ This document defines the canonical CSV contract for MVP uploads. Validation mus
 | Column | Type | Rule |
 |---|---|---|
 | contract_version | string | must equal `v1` |
-| source_record_id | string | unique within file |
+| source_record_id | string | unique within file and across uploads for the same company |
 | company_registration_number | string | must match existing company |
 | transaction_date | date | valid ISO date |
 | ledger_category | enum | see allowed values |
@@ -99,7 +100,7 @@ This document defines the canonical CSV contract for MVP uploads. Validation mus
 | Column | Type | Rule |
 |---|---|---|
 | contract_version | string | must equal `v1` |
-| source_record_id | string | unique within file |
+| source_record_id | string | unique within file and across uploads for the same company |
 | company_registration_number | string | must match existing company |
 | pay_period | date | first day of pay month |
 | gross_salary | decimal(18,2) | > 0 |
@@ -125,7 +126,7 @@ This document defines the canonical CSV contract for MVP uploads. Validation mus
 | Column | Type | Rule |
 |---|---|---|
 | contract_version | string | must equal `v1` |
-| source_record_id | string | unique within file |
+| source_record_id | string | unique within file and across uploads for the same company |
 | company_registration_number | string | must match existing company |
 | tax_period_start | date | valid ISO date |
 | tax_period_end | date | valid ISO date and >= start |
@@ -165,6 +166,7 @@ Validation errors must include:
 | `DC011` | Missing statutory evidence field |
 | `DC012` | Reconciliation key mismatch |
 | `DC013` | Invalid filing or payment timeline |
+| `DC014` | Duplicate `source_record_id` across uploads |
 
 ## Deterministic Processing Rules
 

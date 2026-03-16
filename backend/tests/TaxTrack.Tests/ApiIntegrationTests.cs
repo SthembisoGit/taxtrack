@@ -3,6 +3,8 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
+using TaxTrack.Infrastructure.Data;
 
 namespace TaxTrack.Tests;
 
@@ -99,6 +101,52 @@ public sealed class ApiIntegrationTests
         var secondUploadId = await UploadTransactionsAsync(client, token, companyId, "REG-UPLOAD-002", "idem-upload-001");
 
         Assert.Equal(firstUploadId, secondUploadId);
+    }
+
+    [Fact]
+    public async Task Upload_InvalidFile_DoesNotPersistRecords()
+    {
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        var token = await RegisterAndLoginAsync(client, "owner-upload-invalid@taxtrack.test");
+        var companyId = await CreateCompanyAsync(client, token, "REG-UPLOAD-003");
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/financial/upload");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Headers.Add("Idempotency-Key", "idem-upload-invalid-001");
+        request.Content = BuildTransactionsFormContent(companyId, "REG-MISMATCH-999", "txn-invalid-001");
+
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<TaxTrackDbContext>();
+        Assert.False(dbContext.FinancialTransactions.Any(x => x.CompanyId == companyId));
+    }
+
+    [Fact]
+    public async Task Upload_DuplicateSourceRecordAcrossImports_IsRejected()
+    {
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        var token = await RegisterAndLoginAsync(client, "owner-upload-duplicate@taxtrack.test");
+        var companyId = await CreateCompanyAsync(client, token, "REG-UPLOAD-004");
+
+        await UploadTransactionsAsync(client, token, companyId, "REG-UPLOAD-004", "idem-upload-dupe-001", "txn-dupe-001");
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/financial/upload");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Headers.Add("Idempotency-Key", "idem-upload-dupe-002");
+        request.Content = BuildTransactionsFormContent(companyId, "REG-UPLOAD-004", "txn-dupe-001");
+
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<TaxTrackDbContext>();
+        Assert.Equal(1, dbContext.FinancialTransactions.Count(x => x.CompanyId == companyId));
     }
 
     [Fact]
@@ -346,12 +394,13 @@ public sealed class ApiIntegrationTests
         string token,
         Guid companyId,
         string registrationNumber,
-        string idempotencyKey)
+        string idempotencyKey,
+        string sourceRecordId = "txn-api-001")
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/api/financial/upload");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         request.Headers.Add("Idempotency-Key", idempotencyKey);
-        request.Content = BuildTransactionsFormContent(companyId, registrationNumber);
+        request.Content = BuildTransactionsFormContent(companyId, registrationNumber, sourceRecordId);
 
         using var response = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
@@ -405,11 +454,14 @@ public sealed class ApiIntegrationTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
-    private static MultipartFormDataContent BuildTransactionsFormContent(Guid companyId, string registrationNumber)
+    private static MultipartFormDataContent BuildTransactionsFormContent(
+        Guid companyId,
+        string registrationNumber,
+        string sourceRecordId = "txn-api-001")
     {
         var csv = string.Join('\n',
             "contract_version,source_record_id,company_registration_number,transaction_date,ledger_category,description,amount,currency,vat_amount,direction,source_system,tax_invoice_number,supplier_vat_number,tax_invoice_date,vat201_reference",
-            $"v1,txn-api-001,{registrationNumber},2026-01-31,Revenue,Sales invoice,1000.00,ZAR,0.00,credit,Manual,,,,");
+            $"v1,{sourceRecordId},{registrationNumber},2026-01-31,Revenue,Sales invoice,1000.00,ZAR,0.00,credit,Manual,,,,");
 
         var fileBytes = Encoding.UTF8.GetBytes(csv);
         var fileContent = new ByteArrayContent(fileBytes);

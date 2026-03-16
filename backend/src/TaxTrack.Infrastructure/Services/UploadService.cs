@@ -81,15 +81,70 @@ public sealed class UploadService(
 
         var issues = new List<ValidationIssue>();
         ParseSummary summary;
+        List<FinancialTransaction>? transactionRecords = null;
+        List<PayrollRecord>? payrollRecords = null;
+        List<VatSubmissionRecord>? vatRecords = null;
+
         try
         {
-            summary = command.DatasetType switch
+            switch (command.DatasetType)
             {
-                DatasetType.Transactions => ParseTransactions(command.CompanyId, company.RegistrationNumber, uploadJob.Id, bytes, issues),
-                DatasetType.Payroll => ParsePayroll(command.CompanyId, company.RegistrationNumber, uploadJob.Id, bytes, issues),
-                DatasetType.VatSubmissions => ParseVatSubmissions(command.CompanyId, company.RegistrationNumber, uploadJob.Id, bytes, issues),
-                _ => throw new TaxTrack.Application.Exceptions.ValidationException("Unsupported dataset type.", [new ValidationIssue(1, "datasetType", "DC005", "Unsupported dataset type.")])
-            };
+                case DatasetType.Transactions:
+                {
+                    var existingIds = await dbContext.FinancialTransactions
+                        .Where(x => x.CompanyId == command.CompanyId)
+                        .Select(x => x.SourceRecordId)
+                        .ToListAsync(cancellationToken);
+                    var result = ParseTransactions(
+                        command.CompanyId,
+                        company.RegistrationNumber,
+                        uploadJob.Id,
+                        bytes,
+                        new HashSet<string>(existingIds, StringComparer.OrdinalIgnoreCase),
+                        issues);
+                    summary = result.Summary;
+                    transactionRecords = result.Records;
+                    break;
+                }
+                case DatasetType.Payroll:
+                {
+                    var existingIds = await dbContext.PayrollRecords
+                        .Where(x => x.CompanyId == command.CompanyId)
+                        .Select(x => x.SourceRecordId)
+                        .ToListAsync(cancellationToken);
+                    var result = ParsePayroll(
+                        command.CompanyId,
+                        company.RegistrationNumber,
+                        uploadJob.Id,
+                        bytes,
+                        new HashSet<string>(existingIds, StringComparer.OrdinalIgnoreCase),
+                        issues);
+                    summary = result.Summary;
+                    payrollRecords = result.Records;
+                    break;
+                }
+                case DatasetType.VatSubmissions:
+                {
+                    var existingIds = await dbContext.VatSubmissionRecords
+                        .Where(x => x.CompanyId == command.CompanyId)
+                        .Select(x => x.SourceRecordId)
+                        .ToListAsync(cancellationToken);
+                    var result = ParseVatSubmissions(
+                        command.CompanyId,
+                        company.RegistrationNumber,
+                        uploadJob.Id,
+                        bytes,
+                        new HashSet<string>(existingIds, StringComparer.OrdinalIgnoreCase),
+                        issues);
+                    summary = result.Summary;
+                    vatRecords = result.Records;
+                    break;
+                }
+                default:
+                    throw new TaxTrack.Application.Exceptions.ValidationException(
+                        "Unsupported dataset type.",
+                        [new ValidationIssue(1, "datasetType", "DC005", "Unsupported dataset type.")]);
+            }
         }
         catch (HeaderValidationException ex)
         {
@@ -125,6 +180,21 @@ public sealed class UploadService(
                 cancellationToken);
 
             throw new TaxTrack.Application.Exceptions.ValidationException("CSV validation failed.", issues.Take(1000).ToArray());
+        }
+
+        if (transactionRecords is not null)
+        {
+            dbContext.FinancialTransactions.AddRange(transactionRecords);
+        }
+
+        if (payrollRecords is not null)
+        {
+            dbContext.PayrollRecords.AddRange(payrollRecords);
+        }
+
+        if (vatRecords is not null)
+        {
+            dbContext.VatSubmissionRecords.AddRange(vatRecords);
         }
 
         uploadJob.Status = UploadJobStatus.Completed;
@@ -168,17 +238,19 @@ public sealed class UploadService(
             uploadJob.UpdatedAtUtc);
     }
 
-    private ParseSummary ParseTransactions(
+    private ParseResult<FinancialTransaction> ParseTransactions(
         Guid companyId,
         string expectedRegistration,
         Guid uploadJobId,
         byte[] bytes,
+        ISet<string> existingSourceIds,
         ICollection<ValidationIssue> issues)
     {
         var accepted = 0;
         var evidenceRequired = 0;
         var evidencePresent = 0;
         var sourceIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var records = new List<FinancialTransaction>();
 
         using var stream = new MemoryStream(bytes);
         using var reader = new StreamReader(stream, Encoding.UTF8);
@@ -217,6 +289,10 @@ public sealed class UploadService(
             else if (!sourceIds.Add(sourceRecordId))
             {
                 issues.Add(new ValidationIssue(row, "source_record_id", "DC008", "Duplicate source_record_id in file."));
+            }
+            else if (existingSourceIds.Contains(sourceRecordId))
+            {
+                issues.Add(new ValidationIssue(row, "source_record_id", "DC014", "Duplicate source_record_id already exists for this company."));
             }
 
             if (!string.Equals(registration, expectedRegistration, StringComparison.OrdinalIgnoreCase))
@@ -282,7 +358,7 @@ public sealed class UploadService(
                 continue;
             }
 
-            dbContext.FinancialTransactions.Add(new FinancialTransaction
+            records.Add(new FinancialTransaction
             {
                 CompanyId = companyId,
                 UploadJobId = uploadJobId,
@@ -304,20 +380,22 @@ public sealed class UploadService(
         }
 
         var completeness = evidenceRequired == 0 ? 100 : (int)Math.Round((double)evidencePresent * 100 / evidenceRequired);
-        return new ParseSummary(accepted, completeness);
+        return new ParseResult<FinancialTransaction>(records, new ParseSummary(accepted, completeness));
     }
 
-    private ParseSummary ParsePayroll(
+    private ParseResult<PayrollRecord> ParsePayroll(
         Guid companyId,
         string expectedRegistration,
         Guid uploadJobId,
         byte[] bytes,
+        ISet<string> existingSourceIds,
         ICollection<ValidationIssue> issues)
     {
         var accepted = 0;
         var evidenceRequired = 0;
         var evidencePresent = 0;
         var sourceIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var records = new List<PayrollRecord>();
 
         using var stream = new MemoryStream(bytes);
         using var reader = new StreamReader(stream, Encoding.UTF8);
@@ -360,6 +438,10 @@ public sealed class UploadService(
             else if (!sourceIds.Add(sourceRecordId))
             {
                 issues.Add(new ValidationIssue(row, "source_record_id", "DC008", "Duplicate source_record_id in file."));
+            }
+            else if (existingSourceIds.Contains(sourceRecordId))
+            {
+                issues.Add(new ValidationIssue(row, "source_record_id", "DC014", "Duplicate source_record_id already exists for this company."));
             }
 
             if (!string.Equals(registration, expectedRegistration, StringComparison.OrdinalIgnoreCase))
@@ -433,7 +515,7 @@ public sealed class UploadService(
                 continue;
             }
 
-            dbContext.PayrollRecords.Add(new PayrollRecord
+            records.Add(new PayrollRecord
             {
                 CompanyId = companyId,
                 UploadJobId = uploadJobId,
@@ -459,20 +541,22 @@ public sealed class UploadService(
         }
 
         var completeness = evidenceRequired == 0 ? 100 : (int)Math.Round((double)evidencePresent * 100 / evidenceRequired);
-        return new ParseSummary(accepted, completeness);
+        return new ParseResult<PayrollRecord>(records, new ParseSummary(accepted, completeness));
     }
 
-    private ParseSummary ParseVatSubmissions(
+    private ParseResult<VatSubmissionRecord> ParseVatSubmissions(
         Guid companyId,
         string expectedRegistration,
         Guid uploadJobId,
         byte[] bytes,
+        ISet<string> existingSourceIds,
         ICollection<ValidationIssue> issues)
     {
         var accepted = 0;
         var evidenceRequired = 0;
         var evidencePresent = 0;
         var sourceIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var records = new List<VatSubmissionRecord>();
 
         using var stream = new MemoryStream(bytes);
         using var reader = new StreamReader(stream, Encoding.UTF8);
@@ -510,6 +594,10 @@ public sealed class UploadService(
             else if (!sourceIds.Add(sourceRecordId))
             {
                 issues.Add(new ValidationIssue(row, "source_record_id", "DC008", "Duplicate source_record_id in file."));
+            }
+            else if (existingSourceIds.Contains(sourceRecordId))
+            {
+                issues.Add(new ValidationIssue(row, "source_record_id", "DC014", "Duplicate source_record_id already exists for this company."));
             }
 
             if (!string.Equals(registration, expectedRegistration, StringComparison.OrdinalIgnoreCase))
@@ -568,7 +656,7 @@ public sealed class UploadService(
                 continue;
             }
 
-            dbContext.VatSubmissionRecords.Add(new VatSubmissionRecord
+            records.Add(new VatSubmissionRecord
             {
                 CompanyId = companyId,
                 UploadJobId = uploadJobId,
@@ -589,7 +677,7 @@ public sealed class UploadService(
         }
 
         var completeness = evidenceRequired == 0 ? 100 : (int)Math.Round((double)evidencePresent * 100 / evidenceRequired);
-        return new ParseSummary(accepted, completeness);
+        return new ParseResult<VatSubmissionRecord>(records, new ParseSummary(accepted, completeness));
     }
 
     private static string ComputePayloadHash(Guid companyId, DatasetType datasetType, IReadOnlyCollection<byte> bytes)
@@ -602,4 +690,6 @@ public sealed class UploadService(
     }
 
     private sealed record ParseSummary(int AcceptedRows, int EvidenceCompleteness);
+
+    private sealed record ParseResult<T>(List<T> Records, ParseSummary Summary);
 }
