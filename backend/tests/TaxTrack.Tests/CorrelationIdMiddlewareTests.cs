@@ -133,10 +133,11 @@ public sealed class CorrelationIdMiddlewareTests
         await middleware.Invoke(context);
 
         // Assert
-        mockLogger.Verify(
-            x => x.BeginScope(It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("CorrelationId"))),
-            Times.Once,
-            "Middleware did not establish a logging scope with CorrelationId");
+        Assert.NotEmpty(capturedScopes);
+        Assert.Contains(
+            capturedScopes,
+            scope => scope.state.TryGetValue("CorrelationId", out var value) &&
+                     string.Equals(value?.ToString(), correlationId, StringComparison.Ordinal));
     }
 
     /// <summary>

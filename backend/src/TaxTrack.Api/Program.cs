@@ -23,6 +23,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+var isDevLike = builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing");
 var defaultDevOrigins = new[]
 {
     "http://localhost:5173",
@@ -30,12 +31,12 @@ var defaultDevOrigins = new[]
     "https://localhost:5173"
 };
 
-if (builder.Environment.IsDevelopment() && corsOrigins.Length == 0)
+if (isDevLike && corsOrigins.Length == 0)
 {
     corsOrigins = defaultDevOrigins;
 }
 
-if (!builder.Environment.IsDevelopment() && corsOrigins.Length == 0)
+if (!isDevLike && corsOrigins.Length == 0)
 {
     throw new InvalidOperationException("Cors:AllowedOrigins must be configured for non-development environments.");
 }
