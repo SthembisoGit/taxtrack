@@ -17,3 +17,4 @@ Scale path:
 ## Deployment runbooks
 
 - Smoke checks: `infra/deployment-smoke-checks.md`
+- Backup and restore: `infra/backup-restore.md`

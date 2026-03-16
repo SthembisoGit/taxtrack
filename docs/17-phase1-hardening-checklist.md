@@ -38,8 +38,8 @@ This checklist translates Phase 1 goals into concrete, testable hardening tasks.
 
 ## Backup And Restore
 
-- [ ] Document backup schedule for the database.
-- [ ] Document a restore procedure and a basic disaster recovery checklist.
+- [x] Document backup schedule for the database.
+- [x] Document a restore procedure and a basic disaster recovery checklist.
 - [ ] Verify that backups include all audit logs and risk results.
 
 ## UI Reliability And Clarity
