@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using TaxTrack.Application.Exceptions;
 using TaxTrack.Application.Interfaces;
@@ -19,7 +20,11 @@ public sealed class ServiceIntegrationTests
     {
         await using var dbContext = CreateDbContext();
         var (companyId, userId, registrationNumber) = await SeedCompanyAsync(dbContext);
-        var uploadService = new UploadService(dbContext, new CompanyAccessService(dbContext), new NoOpAuditService());
+        var uploadService = new UploadService(
+            dbContext,
+            new CompanyAccessService(dbContext),
+            new NoOpAuditService(),
+            NullLogger<UploadService>.Instance);
 
         var payload = BuildTransactionsCsv(registrationNumber);
         using var firstStream = new MemoryStream(payload);
@@ -68,7 +73,8 @@ public sealed class ServiceIntegrationTests
             dbContext,
             new CompanyAccessService(dbContext),
             new NoOpAuditService(),
-            Options.Create(new TaxPolicyOptions()));
+            Options.Create(new TaxPolicyOptions()),
+            NullLogger<RiskService>.Instance);
 
         var firstResponse = await riskService.AnalyzeAsync(
             new AnalyzeRiskCommand
@@ -113,7 +119,11 @@ public sealed class ServiceIntegrationTests
         });
         await dbContext.SaveChangesAsync();
 
-        var uploadService = new UploadService(dbContext, new CompanyAccessService(dbContext), new NoOpAuditService());
+        var uploadService = new UploadService(
+            dbContext,
+            new CompanyAccessService(dbContext),
+            new NoOpAuditService(),
+            NullLogger<UploadService>.Instance);
         using var stream = new MemoryStream(BuildTransactionsCsv(registrationNumber));
 
         await Assert.ThrowsAsync<ForbiddenException>(() =>
@@ -152,7 +162,8 @@ public sealed class ServiceIntegrationTests
             dbContext,
             new CompanyAccessService(dbContext),
             new NoOpAuditService(),
-            Options.Create(new TaxPolicyOptions()));
+            Options.Create(new TaxPolicyOptions()),
+            NullLogger<RiskService>.Instance);
 
         await Assert.ThrowsAsync<ForbiddenException>(() =>
             riskService.AnalyzeAsync(

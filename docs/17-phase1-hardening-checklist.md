@@ -6,35 +6,35 @@ This checklist translates Phase 1 goals into concrete, testable hardening tasks.
 
 ## Upload Integrity And Data Safety
 
-- [ ] Wrap CSV parsing and record persistence in a single transaction so failed validation does not write partial rows.
-- [ ] Ensure a failed upload leaves no persisted data for that upload job.
-- [ ] Persist upload summaries only after the full file passes validation.
-- [ ] Include a clear failure reason and validation issues for every failed upload.
+- [x] Wrap CSV parsing and record persistence in a single transaction so failed validation does not write partial rows.
+- [x] Ensure a failed upload leaves no persisted data for that upload job.
+- [x] Persist upload summaries only after the full file passes validation.
+- [x] Include a clear failure reason and validation issues for every failed upload.
 
 ## Duplicate Protection And Idempotency
 
-- [ ] Prevent duplicate records across uploads for the same company and dataset type.
-- [ ] Define a de-duplication rule using (companyId + datasetType + source_record_id) or equivalent.
-- [ ] Enforce the rule at both application and database levels.
-- [ ] Keep current idempotency key behavior for request-level replays.
+- [x] Prevent duplicate records across uploads for the same company and dataset type.
+- [x] Define a de-duplication rule using (companyId + datasetType + source_record_id) or equivalent.
+- [x] Enforce the rule at both application and database levels.
+- [x] Keep current idempotency key behavior for request-level replays.
 
 ## Migration And Startup Hardening
 
-- [ ] Replace Database.EnsureCreatedAsync() with EF Core migrations.
-- [ ] Add a documented migration workflow for local and production environments.
-- [ ] Ensure the API fails fast if migrations are missing or invalid in production.
+- [x] Replace Database.EnsureCreatedAsync() with EF Core migrations.
+- [x] Add a documented migration workflow for local and production environments.
+- [x] Ensure the API fails fast if migrations are missing or invalid in production.
 
 ## Production CORS Configuration
 
-- [ ] Add CORS policy with explicit allowlist for production frontend origins.
-- [ ] Support environment-based configuration of allowed origins.
-- [ ] Keep local dev permissive only for localhost during development.
+- [x] Add CORS policy with explicit allowlist for production frontend origins.
+- [x] Support environment-based configuration of allowed origins.
+- [x] Keep local dev permissive only for localhost during development.
 
 ## Observability And Diagnostics
 
-- [ ] Ensure structured logs include correlation IDs for upload and analysis flows.
+- [x] Ensure structured logs include correlation IDs for upload and analysis flows.
 - [ ] Confirm health endpoints are deployed and monitored.
-- [ ] Add minimum error monitoring: unhandled exceptions, upload failures, analysis failures.
+- [x] Add minimum error monitoring: unhandled exceptions, upload failures, analysis failures.
 
 ## Backup And Restore
 
@@ -50,10 +50,10 @@ This checklist translates Phase 1 goals into concrete, testable hardening tasks.
 
 ## Exit Criteria (Aligned To docs/12-readiness-checklist.md)
 
-- [ ] Uploads are transactional and do not partially persist on failure.
-- [ ] Duplicate protection is enforced and tested.
-- [ ] Migrations are the default startup path for production.
-- [ ] CORS is configurable and locked down for production.
+- [x] Uploads are transactional and do not partially persist on failure.
+- [x] Duplicate protection is enforced and tested.
+- [x] Migrations are the default startup path for production.
+- [x] CORS is configurable and locked down for production.
 - [ ] Health probes and logging are live and verified.
 - [ ] Backup and restore steps are documented and tested at least once.
 - [ ] Pilot users can complete end-to-end flows without developer intervention.

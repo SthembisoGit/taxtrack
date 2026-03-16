@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using CsvHelper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using TaxTrack.Application.Exceptions;
 using TaxTrack.Application.Interfaces;
 using TaxTrack.Application.Models;
