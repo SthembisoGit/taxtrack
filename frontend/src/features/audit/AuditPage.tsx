@@ -6,8 +6,9 @@ import { apiClient, ApiError } from '@/lib/api/client';
 import { useAuthSession } from '@/lib/auth/session';
 import type { AuditEventType, AuditLogEventResponse } from '@/lib/api/types';
 
-const companyAuditQueryKey = (companyId: string) => ['audit-log', 'company', companyId] as const;
-const securityAuditQueryKey = ['audit-log', 'security'] as const;
+const companyAuditQueryKey = (userId: string | undefined, companyId: string) =>
+  ['audit-log', 'company', userId ?? 'anonymous', companyId] as const;
+const securityAuditQueryKey = (userId?: string) => ['audit-log', 'security', userId ?? 'anonymous'] as const;
 
 const auditEventLabels: Record<AuditEventType, string> = {
   LoginSucceeded: 'Login succeeded',
@@ -92,17 +93,20 @@ function AuditTable({
 
 export function AuditPage() {
   const session = useAuthSession();
+  const userId = session?.userId;
   const companyId = session?.selectedCompany?.id;
 
   const companyQuery = useQuery({
-    queryKey: companyId ? companyAuditQueryKey(companyId) : ['audit-log', 'company', 'none'],
+    queryKey: companyId
+      ? companyAuditQueryKey(userId, companyId)
+      : ['audit-log', 'company', userId ?? 'anonymous', 'none'],
     enabled: Boolean(companyId),
     queryFn: () => apiClient.getAuditLog({ companyId: companyId ?? undefined, limit: 25 }),
     retry: false,
   });
 
   const securityQuery = useQuery({
-    queryKey: securityAuditQueryKey,
+    queryKey: securityAuditQueryKey(userId),
     queryFn: () => apiClient.getAuditLog({ limit: 15 }),
     retry: false,
   });

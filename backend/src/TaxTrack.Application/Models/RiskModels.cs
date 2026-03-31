@@ -56,3 +56,8 @@ public sealed record ReportResponse(
     RiskResultResponse RiskSummary,
     IReadOnlyCollection<RiskAlertResponse> Alerts,
     IReadOnlyCollection<ReportDownloadMetadata> DownloadOptions);
+
+public sealed record ReportDownloadResponse(
+    string FileName,
+    string ContentType,
+    ReportResponse Payload);

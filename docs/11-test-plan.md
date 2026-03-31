@@ -52,7 +52,7 @@ Testing is aligned to contracts, deterministic rule logic, and security baseline
 4. Boundary mapping tests at 40/41 and 70/71.
 5. Duplicate idempotency key does not duplicate processing.
 6. Membership-based access control for accountant multi-company model.
-7. Audit logs generated for upload, analyze, and report download.
+7. Audit logs generated for upload, analysis requested/completed, and successful report download.
 8. Refresh token misuse and expiry behavior verified.
 9. Dashboard and report return identical score and risk level.
 10. VAT policy effective-date regression test handles rate-policy changes and reversals.

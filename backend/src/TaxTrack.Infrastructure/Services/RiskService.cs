@@ -86,6 +86,16 @@ public sealed class RiskService(
             command.CompanyId,
             correlationId);
 
+        await auditService.LogAsync(
+            command.UserId,
+            command.CompanyId,
+            AuditEventType.RiskAnalysisRequested,
+            correlationId,
+            new { jobId = job.Id, command.PeriodStart, command.PeriodEnd },
+            ipAddress,
+            userAgent,
+            cancellationToken);
+
         var start = command.PeriodStart;
         var end = command.PeriodEnd;
 

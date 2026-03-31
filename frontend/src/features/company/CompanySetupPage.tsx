@@ -58,11 +58,11 @@ export function CompanySetupPage() {
         taxReference,
       });
 
-      queryClient.setQueryData<CompanyResponse[]>(companiesQueryKey, (current) => {
+      queryClient.setQueryData<CompanyResponse[]>(companiesQueryKey(session?.userId), (current) => {
         const existing = current ?? [];
         return [...existing.filter((item) => item.id !== company.id), company];
       });
-      void queryClient.invalidateQueries({ queryKey: companiesQueryKey });
+      void queryClient.invalidateQueries({ queryKey: companiesQueryKey(session?.userId) });
       rememberCompany(company);
       navigate('/upload');
     } catch (caught) {

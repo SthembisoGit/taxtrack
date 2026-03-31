@@ -20,7 +20,7 @@ builder.Services.AddControllers()
 builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
 
-builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddInfrastructure(builder.Configuration, builder.Environment.EnvironmentName);
 
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 var isDevLike = builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing");
@@ -55,6 +55,12 @@ var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<Jw
 if (jwtOptions.SigningKey.Length < 32)
 {
     throw new InvalidOperationException("JWT signing key must be at least 32 characters.");
+}
+
+var reportDownloadOptions = builder.Configuration.GetSection(ReportDownloadOptions.SectionName).Get<ReportDownloadOptions>() ?? new ReportDownloadOptions();
+if (reportDownloadOptions.SigningKey.Length < 32)
+{
+    throw new InvalidOperationException("Report download signing key must be at least 32 characters.");
 }
 
 builder.Services

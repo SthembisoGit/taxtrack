@@ -130,8 +130,9 @@ As a company user, I want to download a compliance report so I can share with le
 Acceptance criteria:
 
 - `GET /api/report/{companyId}` returns report metadata and data payload.
+- Report metadata returns authenticated JSON download options only for MVP v1.
 - Report includes score, level, triggered rules, and generated timestamp.
-- Report request is audit logged.
+- Successful report download is audit logged.
 
 ## Story 14: Accountant Multi-Company Access
 

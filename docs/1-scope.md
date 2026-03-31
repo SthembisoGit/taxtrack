@@ -12,7 +12,7 @@
 4. Data validation and structured error reporting
 5. Rule-based risk engine and score calculation (0-100)
 6. Dashboard risk summary and alerts list
-7. Compliance report generation (JSON response + downloadable artifact metadata)
+7. Compliance report generation (JSON response + authenticated downloadable JSON artifact metadata)
 8. Audit trail logging for security and traceability
 
 ## Out Of Scope (MVP)

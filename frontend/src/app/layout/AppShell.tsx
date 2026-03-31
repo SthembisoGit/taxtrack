@@ -64,11 +64,17 @@ export function AppShell() {
     queryClient.removeQueries({ queryKey: ['risk-result'] });
     queryClient.removeQueries({ queryKey: ['report'] });
     queryClient.removeQueries({ queryKey: ['audit-log', 'company'] });
-    void queryClient.invalidateQueries({ queryKey: companiesQueryKey });
+    void queryClient.invalidateQueries({ queryKey: companiesQueryKey(session?.userId) });
 
     if (location.pathname === '/company/setup') {
       navigate('/upload');
     }
+  }
+
+  function handleSignOut() {
+    queryClient.clear();
+    clearSession();
+    navigate('/auth', { replace: true });
   }
 
   return (
@@ -111,7 +117,7 @@ export function AppShell() {
               <NavLink className="button button-secondary" to="/company/setup">
                 Manage workspaces
               </NavLink>
-              <button className="button button-secondary" onClick={() => clearSession()} type="button">
+              <button className="button button-secondary" onClick={handleSignOut} type="button">
                 Sign out
               </button>
             </div>

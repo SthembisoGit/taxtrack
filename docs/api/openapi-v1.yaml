@@ -319,12 +319,49 @@ paths:
   /api/report/{companyId}:
     get:
       tags: [Reports]
-      summary: Generate and return compliance report payload
+      summary: Generate and return compliance report payload plus authenticated download metadata
       parameters:
         - $ref: '#/components/parameters/CompanyIdPath'
       responses:
         '200':
           description: Report generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/report/{companyId}/download:
+    get:
+      tags: [Reports]
+      summary: Download a JSON report artifact for a specific report snapshot
+      parameters:
+        - $ref: '#/components/parameters/CompanyIdPath'
+        - name: reportId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: format
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [json]
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: JSON report artifact
           content:
             application/json:
               schema:
@@ -814,7 +851,7 @@ components:
       properties:
         format:
           type: string
-          enum: [pdf, json]
+          enum: [json]
         url:
           type: string
         expiresAtUtc:

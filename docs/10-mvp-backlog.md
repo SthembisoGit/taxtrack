@@ -67,12 +67,12 @@
 
 - Dashboard API and frontend display
 - Alert visualization by semantic levels
-- Report generation and download metadata
+- Report generation and authenticated JSON download flow
 
 ### Backlog Items
 
 1. Implement latest risk result endpoint.
-2. Implement report endpoint contract.
+2. Implement report metadata and authenticated JSON download endpoint contract.
 3. Implement dashboard UI states and token mapping.
 4. Add consistency checks for report vs dashboard.
 5. Implement async job status endpoints for upload and analysis.

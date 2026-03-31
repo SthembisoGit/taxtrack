@@ -54,7 +54,7 @@ Infrastructure (EF Core Repositories, PostgreSQL, File Storage, Queue Worker)
 - Implements repositories with PostgreSQL + EF Core.
 - Persists audit logs and analysis results.
 - Executes background jobs for upload parsing and risk analysis.
-- Handles report artifact storage and retrieval.
+- Generates signed JSON report downloads and serves report artifacts on demand.
 
 ## Data Flow: Upload To Score
 
@@ -66,7 +66,7 @@ Infrastructure (EF Core Repositories, PostgreSQL, File Storage, Queue Worker)
 6. Worker evaluates rules from `docs/4-risk-rules-catalog.md`.
 7. Score and alerts are persisted as `TaxRiskResult` and `RiskAlert`.
 8. API returns latest result through `GET /api/risk/{companyId}`.
-9. Report endpoint generates report payload and download metadata.
+9. Report endpoint generates report payload and authenticated JSON download metadata.
 
 ## Multi-Tenancy Model
 

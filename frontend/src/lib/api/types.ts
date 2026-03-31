@@ -1,5 +1,6 @@
 export type UserRole = 'Owner' | 'Accountant' | 'FinanceManager' | 'Viewer';
 export type DatasetType = 'transactions' | 'payroll' | 'vat_submissions';
+export type ReportDownloadFormat = 'json';
 export type UploadJobStatus = 'Queued' | 'Validating' | 'Processing' | 'Completed' | 'Failed';
 export type RiskAnalysisJobStatus = 'Queued' | 'Processing' | 'Completed' | 'Failed';
 export type RiskLevel = 'Low' | 'Medium' | 'High';
@@ -100,7 +101,7 @@ export interface RiskResultResponse {
 }
 
 export interface ReportDownloadMetadata {
-  format: string;
+  format: ReportDownloadFormat;
   url: string;
   expiresAtUtc: string;
 }

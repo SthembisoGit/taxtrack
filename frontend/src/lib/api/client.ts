@@ -5,6 +5,7 @@ import {
   toAppSession,
   type AppSession,
 } from '@/lib/auth/session';
+import { resetAppQueryClient } from '@/app/queryClient';
 import { normalizeProblem } from '@/lib/utils/problem';
 import type {
   AuditLogEventResponse,
@@ -43,8 +44,20 @@ export class SessionExpiredError extends Error {
 
 let refreshPromise: Promise<AppSession | null> | null = null;
 
+function isAbsoluteUrl(path: string) {
+  return /^https?:\/\//i.test(path);
+}
+
 function buildUrl(path: string) {
+  if (isAbsoluteUrl(path)) {
+    return path;
+  }
+
   return `${API_BASE_URL}${path}`;
+}
+
+export function resolveApiUrl(path: string) {
+  return buildUrl(path);
 }
 
 function isJsonContentType(contentType: string | null) {
@@ -72,6 +85,7 @@ async function refreshSession() {
   const session = getSession();
   if (!session?.refreshToken) {
     clearSession();
+    resetAppQueryClient();
     return null;
   }
 
@@ -87,12 +101,14 @@ async function refreshSession() {
 
       if (!response.ok) {
         clearSession();
+        resetAppQueryClient();
         return null;
       }
 
       const payload = await parseResponse<AuthResponse>(response);
       if (!payload) {
         clearSession();
+        resetAppQueryClient();
         return null;
       }
 
@@ -101,6 +117,7 @@ async function refreshSession() {
       return nextSession;
     } catch {
       clearSession();
+      resetAppQueryClient();
       return null;
     } finally {
       refreshPromise = null;
@@ -115,7 +132,7 @@ interface RequestOptions extends RequestInit {
   retryOnUnauthorized?: boolean;
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function sendRequest(path: string, options: RequestOptions = {}): Promise<Response> {
   const { auth = true, retryOnUnauthorized = true, headers, ...init } = options;
   const session = getSession();
   const requestHeaders = new Headers(headers);
@@ -135,11 +152,17 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       throw new SessionExpiredError();
     }
 
-    return request<T>(path, {
+    return sendRequest(path, {
       ...options,
       retryOnUnauthorized: false,
     });
   }
+
+  return response;
+}
+
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const response = await sendRequest(path, options);
 
   if (!response.ok) {
     const payload = await parseResponse<unknown>(response);
@@ -148,6 +171,29 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   const payload = await parseResponse<T>(response);
   return payload;
+}
+
+function extractFileName(contentDisposition: string | null) {
+  if (!contentDisposition) {
+    return 'taxtrack-report.json';
+  }
+
+  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    return decodeURIComponent(utf8Match[1]);
+  }
+
+  const quotedMatch = contentDisposition.match(/filename="([^"]+)"/i);
+  if (quotedMatch?.[1]) {
+    return quotedMatch[1];
+  }
+
+  const plainMatch = contentDisposition.match(/filename=([^;]+)/i);
+  if (plainMatch?.[1]) {
+    return plainMatch[1].trim();
+  }
+
+  return 'taxtrack-report.json';
 }
 
 export const apiClient = {
@@ -237,6 +283,18 @@ export const apiClient = {
   },
   getReport(companyId: string) {
     return request<ReportResponse>(`/api/report/${companyId}`);
+  },
+  async downloadReport(downloadUrl: string) {
+    const response = await sendRequest(downloadUrl);
+    if (!response.ok) {
+      const payload = await parseResponse<unknown>(response);
+      throw new ApiError(normalizeProblem(payload, response.status));
+    }
+
+    return {
+      blob: await response.blob(),
+      fileName: extractFileName(response.headers.get('content-disposition')),
+    };
   },
   getAuditLog(input: { companyId?: string; limit?: number }) {
     const params = new URLSearchParams();

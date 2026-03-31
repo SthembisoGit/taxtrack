@@ -26,6 +26,7 @@ export function DashboardPage() {
       companyId={companyId}
       companyName={session.selectedCompany?.name ?? ''}
       registrationNumber={session.selectedCompany?.registrationNumber ?? ''}
+      userId={session.userId}
     />
   );
 }
@@ -34,15 +35,16 @@ interface DashboardWorkspaceProps {
   companyId: string;
   companyName: string;
   registrationNumber: string;
+  userId: string;
 }
 
-function DashboardWorkspace({ companyId, companyName, registrationNumber }: DashboardWorkspaceProps) {
+function DashboardWorkspace({ companyId, companyName, registrationNumber, userId }: DashboardWorkspaceProps) {
   const queryClient = useQueryClient();
   const [analysisId, setAnalysisId] = useState('');
   const [error, setError] = useState('');
 
   const riskQuery = useQuery({
-    queryKey: ['risk-result', companyId],
+    queryKey: ['risk-result', userId, companyId],
     queryFn: async () => {
       return apiClient.getLatestRisk(companyId);
     },
@@ -75,7 +77,7 @@ function DashboardWorkspace({ companyId, companyName, registrationNumber }: Dash
   });
 
   const analysisStatusQuery = useQuery({
-    queryKey: ['analysis-status', analysisId],
+    queryKey: ['analysis-status', userId, analysisId],
     enabled: Boolean(analysisId),
     queryFn: () => apiClient.getAnalysisStatus(analysisId),
     refetchInterval: (query) => {
@@ -90,10 +92,10 @@ function DashboardWorkspace({ companyId, companyName, registrationNumber }: Dash
 
   useEffect(() => {
     if (analysisStatusQuery.data?.status === 'Completed' && companyId) {
-      void queryClient.invalidateQueries({ queryKey: ['risk-result', companyId] });
-      void queryClient.invalidateQueries({ queryKey: ['report', companyId] });
+      void queryClient.invalidateQueries({ queryKey: ['risk-result', userId, companyId] });
+      void queryClient.invalidateQueries({ queryKey: ['report', userId, companyId] });
     }
-  }, [analysisStatusQuery.data?.status, companyId, queryClient]);
+  }, [analysisStatusQuery.data?.status, companyId, queryClient, userId]);
 
   const riskError = riskQuery.error instanceof ApiError ? riskQuery.error : null;
   const notFound = riskError?.problem.status === 404;

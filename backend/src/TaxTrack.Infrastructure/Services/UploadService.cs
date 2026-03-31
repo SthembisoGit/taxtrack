@@ -188,7 +188,14 @@ public sealed class UploadService(
 
         dbContext.UploadJobs.Add(uploadJob);
         dbContext.IdempotencyRecords.Add(idempotencyRecord);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            throw new ConflictException("Upload import collided with existing records for this company. Review duplicate source_record_id values and retry.");
+        }
 
         if (issues.Count > 0)
         {
@@ -708,6 +715,30 @@ public sealed class UploadService(
         Buffer.BlockCopy(prefix, 0, combined, 0, prefix.Length);
         bytes.ToArray().CopyTo(combined, prefix.Length);
         return Convert.ToHexString(SHA256.HashData(combined));
+    }
+
+    private static bool IsUniqueConstraintViolation(DbUpdateException exception)
+    {
+        var inner = exception.InnerException;
+        if (inner is null)
+        {
+            return false;
+        }
+
+        if (string.Equals(inner.GetType().FullName, "Npgsql.PostgresException", StringComparison.Ordinal))
+        {
+            var sqlState = inner.GetType().GetProperty("SqlState")?.GetValue(inner)?.ToString();
+            return string.Equals(sqlState, "23505", StringComparison.Ordinal);
+        }
+
+        if (string.Equals(inner.GetType().FullName, "Microsoft.Data.Sqlite.SqliteException", StringComparison.Ordinal))
+        {
+            var errorCode = inner.GetType().GetProperty("SqliteErrorCode")?.GetValue(inner);
+            var extendedErrorCode = inner.GetType().GetProperty("SqliteExtendedErrorCode")?.GetValue(inner);
+            return Equals(errorCode, 19) || Equals(extendedErrorCode, 2067);
+        }
+
+        return false;
     }
 
     private sealed record ParseSummary(int AcceptedRows, int EvidenceCompleteness);

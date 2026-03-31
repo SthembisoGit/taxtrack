@@ -11,4 +11,15 @@ public interface IReportService
         string? ipAddress,
         string? userAgent,
         CancellationToken cancellationToken);
+
+    Task<ReportDownloadResponse?> DownloadJsonAsync(
+        Guid userId,
+        Guid companyId,
+        Guid reportId,
+        string format,
+        string token,
+        string correlationId,
+        string? ipAddress,
+        string? userAgent,
+        CancellationToken cancellationToken);
 }

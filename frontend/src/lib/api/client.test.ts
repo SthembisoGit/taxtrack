@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { appQueryClient, resetAppQueryClient } from '@/app/queryClient';
 import { apiClient, SessionExpiredError } from '@/lib/api/client';
 import { clearSession, getSession, saveSession, toAppSession } from '@/lib/auth/session';
 import type { AuthResponse, RiskResultResponse } from '@/lib/api/types';
@@ -68,12 +69,14 @@ describe('apiClient refresh handling', () => {
   beforeEach(() => {
     window.sessionStorage.clear();
     clearSession();
+    resetAppQueryClient();
     saveSession(toAppSession(staleAuth));
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
     clearSession();
+    resetAppQueryClient();
     window.sessionStorage.clear();
   });
 
@@ -96,6 +99,7 @@ describe('apiClient refresh handling', () => {
   });
 
   it('clears the session when refresh fails', async () => {
+    appQueryClient.setQueryData(['companies', staleAuth.userId], [{ id: 'company-1' }]);
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
@@ -105,6 +109,7 @@ describe('apiClient refresh handling', () => {
 
     await expect(apiClient.getLatestRisk('company-1')).rejects.toBeInstanceOf(SessionExpiredError);
     expect(getSession()).toBeNull();
+    expect(appQueryClient.getQueryData(['companies', staleAuth.userId])).toBeUndefined();
   });
 
   it('parses application/problem+json error payloads', async () => {
@@ -142,6 +147,25 @@ describe('apiClient refresh handling', () => {
           }),
         ],
       }),
+    });
+  });
+
+  it('downloads report artifacts and extracts the UTF-8 filename', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      new Response(new Blob(['{}'], { type: 'application/json' }), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Disposition':
+            "attachment; filename=taxtrack-report.json; filename*=UTF-8''taxtrack-report-za%20demo.json",
+        },
+      }),
+    );
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(apiClient.downloadReport('/api/report/company-1/download?format=json')).resolves.toMatchObject({
+      fileName: 'taxtrack-report-za demo.json',
     });
   });
 });

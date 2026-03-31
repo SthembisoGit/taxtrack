@@ -206,9 +206,7 @@ describe('App flow', () => {
       ).toBeTruthy();
 
       await waitFor(() => {
-        expect(screen.getByRole('link', { name: /json/i }).getAttribute('href')).toBe(
-          'https://example.com/report.json',
-        );
+        expect(screen.getByRole('button', { name: /json/i })).toBeTruthy();
       });
     },
     45000,

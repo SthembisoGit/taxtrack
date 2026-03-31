@@ -1,5 +1,6 @@
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppShell } from '@/app/layout/AppShell';
 import { apiClient } from '@/lib/api/client';
@@ -75,5 +76,39 @@ describe('AppShell', () => {
 
     expect(getSession()?.selectedCompany?.id).toBe(companies[1].id);
     expect(getSession()?.selectedCompany?.name).toBe(companies[1].name);
+  }, 15000);
+
+  it('clears protected query cache on sign out', async () => {
+    const user = userEvent.setup();
+
+    saveSession(
+      toAppSession(authResponse, {
+        id: companies[0].id,
+        name: companies[0].name,
+        registrationNumber: companies[0].registrationNumber,
+      }),
+    );
+
+    vi.spyOn(apiClient, 'listCompanies').mockResolvedValue(companies);
+
+    const { queryClient } = renderWithProviders(
+      <Routes>
+        <Route path="/auth" element={<div>Auth page</div>} />
+        <Route element={<AppShell />}>
+          <Route path="/dashboard" element={<div>Loaded content</div>} />
+        </Route>
+      </Routes>,
+      { route: '/dashboard' },
+    );
+
+    expect(await screen.findByText('Loaded content')).toBeTruthy();
+    queryClient.setQueryData(['privacy-requests', authResponse.userId], [{ id: 'request-1' }]);
+    queryClient.setQueryData(['companies', authResponse.userId], companies);
+
+    await user.click(screen.getByRole('button', { name: 'Sign out' }));
+
+    expect(getSession()).toBeNull();
+    expect(queryClient.getQueryData(['privacy-requests', authResponse.userId])).toBeUndefined();
+    expect(queryClient.getQueryData(['companies', authResponse.userId])).toBeUndefined();
   }, 15000);
 });

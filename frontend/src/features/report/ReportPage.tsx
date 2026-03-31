@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTable } from '@/components/ui/AlertTable';
 import { Panel } from '@/components/ui/Panel';
@@ -10,10 +10,13 @@ import { getReportConsistencyIssues } from '@/features/report/consistency';
 
 export function ReportPage() {
   const session = useAuthSession();
+  const userId = session?.userId;
   const companyId = session?.selectedCompany?.id;
+  const [downloadError, setDownloadError] = useState('');
+  const [downloadingFormat, setDownloadingFormat] = useState('');
 
   const reportQuery = useQuery({
-    queryKey: ['report', companyId],
+    queryKey: ['report', userId, companyId],
     enabled: Boolean(companyId),
     queryFn: async () => {
       if (!companyId) {
@@ -26,7 +29,7 @@ export function ReportPage() {
   });
 
   const latestRiskQuery = useQuery({
-    queryKey: ['risk-result', companyId],
+    queryKey: ['risk-result', userId, companyId],
     enabled: Boolean(companyId),
     queryFn: async () => {
       if (!companyId) {
@@ -48,6 +51,33 @@ export function ReportPage() {
     latestRiskApiError && latestRiskApiError.problem.status !== 404
       ? latestRiskApiError.problem.detail
       : '';
+
+  async function handleDownload(downloadUrl: string, format: string) {
+    setDownloadingFormat(format);
+    setDownloadError('');
+
+    try {
+      const { blob, fileName } = await apiClient.downloadReport(downloadUrl);
+      const objectUrl = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(objectUrl);
+    } catch (caught) {
+      if (caught instanceof ApiError) {
+        setDownloadError(caught.problem.detail);
+      } else if (caught instanceof Error) {
+        setDownloadError(caught.message);
+      } else {
+        setDownloadError('We could not download the report artifact.');
+      }
+    } finally {
+      setDownloadingFormat('');
+    }
+  }
 
   const consistencyIssues = useMemo(() => {
     if (!reportQuery.data) {
@@ -158,23 +188,26 @@ export function ReportPage() {
 
           <RiskSummaryCard summary={reportQuery.data.riskSummary} title="Report summary" />
 
-          <Panel
-            title="Download options"
-            subtitle={`Generated ${new Date(reportQuery.data.generatedAtUtc).toLocaleString()}`}
-          >
-            {reportQuery.data.downloadOptions.length ? (
-              <div className="download-list">
+        <Panel
+          title="Download options"
+          subtitle={`Generated ${new Date(reportQuery.data.generatedAtUtc).toLocaleString()}`}
+        >
+          {downloadError ? <div className="banner banner-error">{downloadError}</div> : null}
+          {reportQuery.data.downloadOptions.length ? (
+            <div className="download-list">
                 {reportQuery.data.downloadOptions.map((download) => (
-                  <a
+                  <button
                     key={download.format}
                     className="download-card"
-                    href={download.url}
-                    rel="noreferrer"
-                    target="_blank"
+                    onClick={() => {
+                      void handleDownload(download.url, download.format);
+                    }}
+                    type="button"
                   >
                     <strong>{download.format.toUpperCase()}</strong>
+                    <span>{downloadingFormat === download.format ? 'Downloading...' : 'Authenticated download'}</span>
                     <span>Expires {new Date(download.expiresAtUtc).toLocaleString()}</span>
-                  </a>
+                  </button>
                 ))}
               </div>
             ) : (

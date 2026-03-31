@@ -57,7 +57,8 @@ describe('ReportPage', () => {
     window.sessionStorage.clear();
   });
 
-  it('renders report summary and download links', async () => {
+  it('renders report summary and performs authenticated downloads', async () => {
+    const user = userEvent.setup();
     saveSession(
       toAppSession(authResponse, {
         id: 'company-1',
@@ -68,6 +69,12 @@ describe('ReportPage', () => {
 
     vi.spyOn(apiClient, 'getReport').mockResolvedValue(reportResponse);
     vi.spyOn(apiClient, 'getLatestRisk').mockResolvedValue(matchingLatestRisk);
+    const downloadSpy = vi.spyOn(apiClient, 'downloadReport').mockResolvedValue({
+      blob: new Blob(['{}'], { type: 'application/json' }),
+      fileName: 'taxtrack-report.json',
+    });
+    const createObjectUrl = vi.spyOn(window.URL, 'createObjectURL').mockReturnValue('blob:report');
+    const revokeObjectUrl = vi.spyOn(window.URL, 'revokeObjectURL').mockImplementation(() => {});
 
     renderWithProviders(<ReportPage />);
 
@@ -76,9 +83,10 @@ describe('ReportPage', () => {
     expect(
       screen.getByText('Report summary and alert output match the latest dashboard analysis result.'),
     ).toBeTruthy();
-    expect(screen.getByRole('link', { name: /json/i }).getAttribute('href')).toBe(
-      'https://example.com/report.json',
-    );
+    await user.click(screen.getByRole('button', { name: /json/i }));
+    expect(downloadSpy).toHaveBeenCalledWith('https://example.com/report.json');
+    expect(createObjectUrl).toHaveBeenCalled();
+    expect(revokeObjectUrl).toHaveBeenCalled();
   }, 15000);
 
   it('shows a warning when the report drifts from the latest dashboard result', async () => {

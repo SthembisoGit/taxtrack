@@ -75,7 +75,7 @@ This document defines text wireframes and required UI states for MVP.
 ### Layout
 
 - Report summary card with generated timestamp.
-- Download options: JSON and PDF.
+- Download options: JSON only for MVP v1.
 - History of previous reports.
 
 ### States
@@ -83,7 +83,7 @@ This document defines text wireframes and required UI states for MVP.
 - Empty: no report generated yet.
 - Loading: report generation in progress.
 - Error: generation failure with retry.
-- Success: downloadable links with expiry metadata.
+- Success: authenticated JSON download action with expiry metadata.
 
 ## Story To Screen Mapping
 

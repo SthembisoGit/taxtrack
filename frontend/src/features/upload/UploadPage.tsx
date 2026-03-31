@@ -45,15 +45,23 @@ export function UploadPage() {
     );
   }
 
-  return <UploadWorkspace key={companyId} companyId={companyId} companyName={session.selectedCompany?.name ?? ''} />;
+  return (
+    <UploadWorkspace
+      key={companyId}
+      companyId={companyId}
+      companyName={session.selectedCompany?.name ?? ''}
+      userId={session.userId}
+    />
+  );
 }
 
 interface UploadWorkspaceProps {
   companyId: string;
   companyName: string;
+  userId: string;
 }
 
-function UploadWorkspace({ companyId, companyName }: UploadWorkspaceProps) {
+function UploadWorkspace({ companyId, companyName, userId }: UploadWorkspaceProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [datasetType, setDatasetType] = useState<DatasetType>('transactions');
   const [file, setFile] = useState<File | null>(null);
@@ -133,7 +141,7 @@ function UploadWorkspace({ companyId, companyName }: UploadWorkspaceProps) {
   });
 
   const uploadStatusQuery = useQuery({
-    queryKey: ['upload-status', lastUploadId],
+    queryKey: ['upload-status', userId, lastUploadId],
     enabled: Boolean(lastUploadId),
     queryFn: () => apiClient.getUploadStatus(lastUploadId),
     refetchInterval: (query) => {

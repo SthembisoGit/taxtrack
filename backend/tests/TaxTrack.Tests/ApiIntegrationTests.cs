@@ -303,7 +303,7 @@ public sealed class ApiIntegrationTests
 
         await UploadTransactionsAsync(client, ownerToken, companyId, "REG-AUDIT-001", "idem-audit-upload-001");
         await AnalyzeAsync(client, ownerToken, companyId, "idem-audit-analyze-001");
-        await GenerateReportAsync(client, ownerToken, companyId);
+        _ = await GetReportMetadataAsync(client, ownerToken, companyId);
 
         using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/audit?companyId={companyId}&limit=20");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ownerToken);
@@ -315,8 +315,93 @@ public sealed class ApiIntegrationTests
         var events = json.RootElement.EnumerateArray().ToArray();
 
         Assert.Contains(events, x => x.GetProperty("eventType").GetString() == "UploadCreated");
+        Assert.Contains(events, x => x.GetProperty("eventType").GetString() == "RiskAnalysisRequested");
         Assert.Contains(events, x => x.GetProperty("eventType").GetString() == "RiskAnalysisCompleted");
+        Assert.DoesNotContain(events, x => x.GetProperty("eventType").GetString() == "ReportDownloaded");
+    }
+
+    [Fact]
+    public async Task ReportMetadata_ReturnsJsonOnlyDownloadOption()
+    {
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        var ownerToken = await RegisterAndLoginAsync(client, "owner-report@taxtrack.test");
+        var companyId = await CreateCompanyAsync(client, ownerToken, "REG-REPORT-001");
+
+        await UploadTransactionsAsync(client, ownerToken, companyId, "REG-REPORT-001", "idem-report-upload-001");
+        await AnalyzeAsync(client, ownerToken, companyId, "idem-report-analyze-001");
+
+        var metadata = await GetReportMetadataAsync(client, ownerToken, companyId);
+
+        Assert.Single(metadata.DownloadOptions);
+        var download = metadata.DownloadOptions.Single();
+        Assert.Equal("json", download.Format);
+        Assert.Contains($"/api/report/{companyId}/download", download.Url, StringComparison.Ordinal);
+        Assert.DoesNotContain("pdf", download.Url, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ReportDownload_ReturnsJsonAttachmentAndLogsDownload()
+    {
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        var ownerToken = await RegisterAndLoginAsync(client, "owner-report-download@taxtrack.test");
+        var companyId = await CreateCompanyAsync(client, ownerToken, "REG-REPORT-002");
+
+        await UploadTransactionsAsync(client, ownerToken, companyId, "REG-REPORT-002", "idem-report-upload-002");
+        await AnalyzeAsync(client, ownerToken, companyId, "idem-report-analyze-002");
+
+        var metadata = await GetReportMetadataAsync(client, ownerToken, companyId);
+        var download = metadata.DownloadOptions.Single();
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, download.Url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ownerToken);
+
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(
+            $"attachment; filename=taxtrack-report-{companyId:N}-{metadata.ReportId:N}.json; filename*=UTF-8''taxtrack-report-{companyId:N}-{metadata.ReportId:N}.json",
+            response.Content.Headers.ContentDisposition?.ToString());
+
+        using var reportJson = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(metadata.ReportId, reportJson.RootElement.GetProperty("reportId").GetGuid());
+        Assert.Equal(companyId, reportJson.RootElement.GetProperty("companyId").GetGuid());
+
+        using var auditRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/audit?companyId={companyId}&limit=20");
+        auditRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ownerToken);
+
+        using var auditResponse = await client.SendAsync(auditRequest);
+        Assert.Equal(HttpStatusCode.OK, auditResponse.StatusCode);
+
+        using var auditJson = JsonDocument.Parse(await auditResponse.Content.ReadAsStringAsync());
+        var events = auditJson.RootElement.EnumerateArray().ToArray();
         Assert.Contains(events, x => x.GetProperty("eventType").GetString() == "ReportDownloaded");
+    }
+
+    [Fact]
+    public async Task ReportDownload_WithTamperedToken_IsForbidden()
+    {
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        var ownerToken = await RegisterAndLoginAsync(client, "owner-report-forbidden@taxtrack.test");
+        var companyId = await CreateCompanyAsync(client, ownerToken, "REG-REPORT-003");
+
+        await UploadTransactionsAsync(client, ownerToken, companyId, "REG-REPORT-003", "idem-report-upload-003");
+        await AnalyzeAsync(client, ownerToken, companyId, "idem-report-analyze-003");
+
+        var metadata = await GetReportMetadataAsync(client, ownerToken, companyId);
+        var download = metadata.DownloadOptions.Single();
+        var tamperedUrl = download.Url[..^1] + (download.Url[^1] == 'a' ? 'b' : 'a');
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, tamperedUrl);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ownerToken);
+
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     [Fact]
@@ -445,13 +530,26 @@ public sealed class ApiIntegrationTests
         return json.RootElement.GetProperty("requestId").GetGuid();
     }
 
-    private static async Task GenerateReportAsync(HttpClient client, string token, Guid companyId)
+    private static async Task<ReportMetadata> GetReportMetadataAsync(HttpClient client, string token, Guid companyId)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/report/{companyId}");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         using var response = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var downloadOptions = json.RootElement
+            .GetProperty("downloadOptions")
+            .EnumerateArray()
+            .Select(x => new DownloadOption(
+                x.GetProperty("format").GetString() ?? string.Empty,
+                x.GetProperty("url").GetString() ?? string.Empty))
+            .ToArray();
+
+        return new ReportMetadata(
+            json.RootElement.GetProperty("reportId").GetGuid(),
+            downloadOptions);
     }
 
     private static MultipartFormDataContent BuildTransactionsFormContent(
@@ -473,4 +571,8 @@ public sealed class ApiIntegrationTests
         form.Add(fileContent, "File", "transactions.csv");
         return form;
     }
+
+    private sealed record ReportMetadata(Guid ReportId, IReadOnlyCollection<DownloadOption> DownloadOptions);
+
+    private sealed record DownloadOption(string Format, string Url);
 }

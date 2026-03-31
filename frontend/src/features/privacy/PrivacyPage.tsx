@@ -12,7 +12,9 @@ import type {
 } from '@/lib/api/types';
 
 const requestTypes: DataSubjectRequestType[] = ['Export', 'Deletion'];
-const privacyRequestsQueryKey = ['privacy-requests'] as const;
+const privacyRequestsQueryKey = (userId?: string) => ['privacy-requests', userId ?? 'anonymous'] as const;
+const privacyRequestQueryKey = (userId: string | undefined, requestId: string) =>
+  ['privacy-request', userId ?? 'anonymous', requestId] as const;
 
 function getStatusBadgeClass(status: DataSubjectRequestStatus) {
   switch (status) {
@@ -149,17 +151,18 @@ export function PrivacyPage() {
   const [lookupError, setLookupError] = useState('');
 
   const selectedCompany = session?.selectedCompany;
+  const userId = session?.userId;
   const canUseWorkspaceScope = Boolean(selectedCompany);
   const resolvedScope = canUseWorkspaceScope ? scope : 'personal';
 
   const requestsQuery = useQuery({
-    queryKey: privacyRequestsQueryKey,
+    queryKey: privacyRequestsQueryKey(userId),
     queryFn: () => apiClient.listDataRequests(),
     retry: false,
   });
 
   const activeRequestQuery = useQuery({
-    queryKey: ['privacy-request', activeRequestId],
+    queryKey: privacyRequestQueryKey(userId, activeRequestId),
     enabled: Boolean(activeRequestId),
     queryFn: () => apiClient.getDataRequest(activeRequestId),
     retry: false,
@@ -180,7 +183,7 @@ export function PrivacyPage() {
       setLookupRequestId(response.requestId);
       setReason('');
       queryClient.setQueryData<DataSubjectRequestResponse[]>(
-        privacyRequestsQueryKey,
+        privacyRequestsQueryKey(userId),
         (current) => upsertRequest(current, response),
       );
     },
@@ -202,7 +205,7 @@ export function PrivacyPage() {
       setLookupError('');
       setActiveRequestId(response.requestId);
       queryClient.setQueryData<DataSubjectRequestResponse[]>(
-        privacyRequestsQueryKey,
+        privacyRequestsQueryKey(userId),
         (current) => upsertRequest(current, response),
       );
     },

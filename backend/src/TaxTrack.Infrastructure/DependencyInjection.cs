@@ -10,18 +10,35 @@ namespace TaxTrack.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        string environmentName)
     {
+        services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.Configure<ReportDownloadOptions>(configuration.GetSection(ReportDownloadOptions.SectionName));
         services.Configure<TaxPolicyOptions>(configuration.GetSection(TaxPolicyOptions.SectionName));
 
+        var databaseOptions = configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>() ?? new DatabaseOptions();
         var connectionString = configuration.GetConnectionString("PostgreSql");
-        if (string.IsNullOrWhiteSpace(connectionString))
+        if (databaseOptions.UseInMemory)
         {
+            if (!string.Equals(environmentName, "Development", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(environmentName, "Testing", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Database:UseInMemory is allowed only in Development or Testing environments.");
+            }
+
             services.AddDbContext<TaxTrackDbContext>(opt => opt.UseInMemoryDatabase("taxtrack-dev"));
         }
         else
         {
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new InvalidOperationException("ConnectionStrings:PostgreSql must be configured when Database:UseInMemory is false.");
+            }
+
             services.AddDbContext<TaxTrackDbContext>(opt => opt.UseNpgsql(connectionString));
         }
 

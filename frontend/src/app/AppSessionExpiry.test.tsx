@@ -1,5 +1,6 @@
 import { screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { resetAppQueryClient } from '@/app/queryClient';
 import { SessionExpiredError, apiClient } from '@/lib/api/client';
 import { clearSession, saveSession, toAppSession } from '@/lib/auth/session';
 import type { AuthResponse } from '@/lib/api/types';
@@ -19,6 +20,7 @@ describe('Protected route expiry handling', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     clearSession();
+    resetAppQueryClient();
     window.sessionStorage.clear();
   });
 
